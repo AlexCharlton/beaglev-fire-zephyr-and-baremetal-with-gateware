@@ -1,0 +1,5 @@
+*.pyc
+*.log
+build_log.txt
+gateware/work/
+gateware/bitstream/

@@ -9,10 +9,12 @@ The BeagleV Fire gateware builder is a Python script that builds both the PolarF
 The following Python libraries are used:
 - GitPython
 - PyYAML
+- requests
 
 ```
 pip3 install gitpython
 pip3 install pyyaml
+pip3 install requests
 ```
 
 ### Microchip Tools
@@ -24,7 +26,7 @@ The following environment variables are required for the bitstream builder to us
 - LIBERO_INSTALL_DIR
 - LM_LICENSE_FILE
 
-An example script for setting up the environment is available [here](https://openbeagle.org/beaglev-fire/Microchip-FPGA-Tools-Setup). 
+To do so, run `source ./setup-microchip-tools.sh` in the terminal.
 
 ## Usage
 
@@ -46,9 +48,6 @@ The YAML configuration files are located in the "build-options" directory.
 | default.yaml       | Default gateware including default cape and M.2 interface. |
 | minimal.yaml       | Minimal Linux system including Ethernet. No FPGA gateware. |
 | robotics.yaml      | Similar to default but supporting the Robotics cape.       |
-
-## Supported Platforms
-The BeagleV Fire gateware builder has been tested on Ubuntu 20.04.
 
 ## Microchip bitstream-builder
 The BeagleV-Fire gateware builder is derived from [Microchip's bitstream-builder ](https://github.com/polarfire-soc/icicle-kit-minimal-bring-up-design-bitstream-builder). We recommend that you use either of these scripts as a starting point for your own PolarFire SoC FPGA designs as opposed to using Libero in isolation.

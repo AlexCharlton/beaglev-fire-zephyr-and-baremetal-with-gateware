@@ -1,12 +1,9 @@
-// SPDX-License-Identifier: (GPL-2.0 OR MIT)
-/* Copyright (c) 2023 Microchip Technology Inc */
-
 /dts-v1/;
 /plugin/;
 
 &{/chosen} {
 	overlays {
-		VERILOG-CAPE-GATEWARE = "GATEWARE_GIT_VERSION";
+		MIDI-CTRL-GATEWARE = "GATEWARE_GIT_VERSION";
 	};
 };
 

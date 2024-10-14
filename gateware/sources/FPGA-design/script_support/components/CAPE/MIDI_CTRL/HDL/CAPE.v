@@ -258,6 +258,7 @@ wire           P9_41;
 wire           P9_42;
 wire           PCLK;
 wire           PRESETN;
+wire           BLINK;
 wire   [31:0]  APB_SLAVE_PRDATA_net_0;
 wire   [27:0]  GPIO_IN_net_1;
 wire   [46:31] GPIO_IN_slice_0;
@@ -313,8 +314,8 @@ assign GPIO_IN_slice_0 = GPIO_IN_net_2[46:31];
 //--------------------------------------------------------------------
 // Concatenation assignments
 //--------------------------------------------------------------------
-assign GPIO_OE_net_0  = { 16'h0000 , GPIO_OE };
-assign GPIO_OUT_net_0 = { 16'h0000 , GPIO_OUT };
+assign GPIO_OE_net_0 = { 16'h0000, GPIO_OE[27:6], 1'b1, GPIO_OE[4:0] };
+assign GPIO_OUT_net_0 = { 16'h0000 , GPIO_OUT[27:6], BLINK, GPIO_OUT[4:0] };
 //--------------------------------------------------------------------
 // Bus Interface Nets Assignments - Unequal Pin Widths
 //--------------------------------------------------------------------
@@ -337,7 +338,7 @@ apb_ctrl_status apb_ctrl_status_0(
         .status  ( apb_ctrl_status_0_control ),
         // Outputs
         .prdata  ( APB_SLAVE_PRDATA ),
-        .control ( apb_ctrl_status_0_control ) 
+        .control ( apb_ctrl_status_0_control )
         );
 
 //--------P8_IOPADS
@@ -409,7 +410,7 @@ P9_11_18_IOPADS P9_11_18_IOPADS_0(
         .P9_15    ( P9_15 ),
         .P9_16    ( P9_16 ),
         .P9_17    ( P9_17 ),
-        .P9_18    ( P9_18 ) 
+        .P9_18    ( P9_18 )
         );
 
 //--------P9_21_31_IOPADS
@@ -430,7 +431,7 @@ P9_21_31_IOPADS P9_21_31_IOPADS_0(
         .P9_28    ( P9_28 ),
         .P9_29    ( P9_29 ),
         .P9_30    ( P9_30 ),
-        .P9_31    ( P9_31 ) 
+        .P9_31    ( P9_31 )
         );
 
 //--------P9_41_42_IOPADS
@@ -442,8 +443,14 @@ P9_41_42_IOPADS P9_41_42_IOPADS_0(
         .GPIO_IN  (  ),
         // Inouts
         .P9_41    ( P9_41 ),
-        .P9_42    ( P9_42 ) 
+        .P9_42    ( P9_42 )
         );
 
+//--------blinky
+blinky blinky_0(
+        .clk     ( PCLK ),
+        .resetn  ( PRESETN ),
+        .blink   ( BLINK )
+        );
 
 endmodule

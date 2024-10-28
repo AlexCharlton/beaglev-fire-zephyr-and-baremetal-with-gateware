@@ -8,6 +8,7 @@
 #===============================================================================
 export SC_INSTALL_DIR=/c/Microchip/SoftConsole-v2022.2-RISC-V-747
 export LIBERO_INSTALL_DIR=/c/Microchip/Libero_SoC_v2024.1
+export LM_LICENSE_FILE=/c/Microchip/flexlm/License.dat
 
 #
 # SoftConsole

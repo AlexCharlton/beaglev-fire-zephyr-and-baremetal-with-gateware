@@ -2,5 +2,8 @@
 
 set -e
 
-/c/programming/beaglev/build.bat
-dd if=//wsl\$/Ubuntu/home/alex/zephyr.img of=/dev/sdd1  bs=4M status=progress oflag=sync
+# Get the directory of this script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+$SCRIPT_DIR/build.bat
+$SCRIPT_DIR/flash.sh

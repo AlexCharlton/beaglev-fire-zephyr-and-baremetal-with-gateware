@@ -6,7 +6,7 @@ ZEPHYR_WORKSPACE=~/zephyrproject
 
 cd $ZEPHYR_WORKSPACE
 source .venv/bin/activate
-rsync -a /mnt/c/programming/beaglev/app/ ~/zephyr-app
+rsync -a --delete /mnt/c/programming/beaglev/app/ ~/zephyr-app
 
 # west build -p always -b beaglev_fire/polarfire/u54/smp samples/hello_world
 west build -p always -b beaglev_fire/polarfire/u54 -s ~/zephyr-app

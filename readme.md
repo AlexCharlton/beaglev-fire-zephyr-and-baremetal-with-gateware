@@ -1,5 +1,6 @@
 ## Usage
 
+Building RISCV application:
 ```
 $ ./scripts/connect-tty.sh
 # Hit a key to stop boot, then
@@ -9,6 +10,11 @@ $ ./scripts/connect-tty.sh
 $ ./scripts/build-flash.sh
 $ ./scripts/connect-openocd.sh
 $ ./scripts/connect-gdb.bat
+```
+
+Building FPGA gateware+HSS:
+```
+$ ./scripts/build-hss-fpga-bitstream.sh
 ```
 
 ## Requirements

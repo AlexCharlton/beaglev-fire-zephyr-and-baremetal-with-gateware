@@ -26,7 +26,7 @@
 # The BeagleV Fire Bitstream Builder is an evolution of the Microchip
 # Bitstream Builder available from:
 # https://github.com/polarfire-soc/icicle-kit-minimal-bring-up-design-bitstream-builder
-# 
+#
 
 
 
@@ -278,10 +278,29 @@ def clone_sources(source_list):
             source_directories[source] = os.path.join("./sources",
                                                       source)  # Generate a dictionary of all of the sources that were cloned
 
+            if source == "HSS":
+                patch_hss(source_directories[source])
+
         f.close()
 
     # return the dictionary of sources
     return source_directories
+
+def patch_hss(hss_source):
+    print("Patching HSS")
+    # Patch HSS OpenSBI Makefile to avoid DTB rebuild error
+    opensbi_makefile = os.path.join(hss_source, "services", "opensbi", "Makefile")
+    with open(opensbi_makefile, 'r') as f:
+        makefile_content = f.read()
+
+    # Replace problematic lines with new implementation
+    makefile_content = makefile_content.replace(
+        '$(CONFIG_DEFAULT_DEVICE_TREE_UNQUOTED): $(CONFIG_DEFAULT_DEVICE_TREE_UNQUOTED:%.dtb=%.dts)\n\t$(error Error:: Rebuilding the DTB is not supported... Please rebuild manually)',
+        '$(CONFIG_DEFAULT_DEVICE_TREE_UNQUOTED):\n\t$(if $(wildcard $@),,$(error Error:: DTB file $@ not found. Please build it manually))'
+    )
+
+    with open(opensbi_makefile, 'w') as f:
+        f.write(makefile_content)
 
 
 # Calls the MSS Configurator and generate an MSS configuration in a directory based on a cfg file
@@ -334,7 +353,7 @@ def make_hss(hss_source, yaml_input_file):
     os.chdir(initial_directory)
 
     # Check build was successful and copy the build artifact to the output directory
-    generated_hex_file = "./sources/HSS/Default/bootmode1/hss-envm-wrapper-bm1-p0.hex"
+    generated_hex_file = "./sources/HSS/build/bootmode1/hss-envm-wrapper-bm1-p0.hex"
     if os.path.isfile(generated_hex_file):
         shutil.copyfile(generated_hex_file, "./work/HSS/hss-envm-wrapper-bm1-p0.hex")
     else:

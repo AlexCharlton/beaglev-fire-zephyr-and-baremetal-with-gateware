@@ -34,20 +34,5 @@ To do so, run `source ./setup-microchip-tools.sh` in the terminal.
 python3 build-bitstream.py <YAML Configuration File>
 ```
 
-For example, the following command will be build the default beagleV Fire configuration:
-```
-python3 build-bitstream.py ./build-options/default.yaml
-```
-
-
-### YAML Configuration Files
-The YAML configuration files are located in the "build-options" directory.
-
-| Configuration File | Description                                                |
-| ------------------ | ---------------------------------------------------------- |
-| default.yaml       | Default gateware including default cape and M.2 interface. |
-| minimal.yaml       | Minimal Linux system including Ethernet. No FPGA gateware. |
-| robotics.yaml      | Similar to default but supporting the Robotics cape.       |
-
 ## Microchip bitstream-builder
 The BeagleV-Fire gateware builder is derived from [Microchip's bitstream-builder ](https://github.com/polarfire-soc/icicle-kit-minimal-bring-up-design-bitstream-builder). We recommend that you use either of these scripts as a starting point for your own PolarFire SoC FPGA designs as opposed to using Libero in isolation.

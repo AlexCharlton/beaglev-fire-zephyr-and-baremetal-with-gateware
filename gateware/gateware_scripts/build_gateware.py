@@ -342,7 +342,7 @@ def make_hss(hss_source, yaml_input_file):
     shutil.copyfile("./work/MSS/PF_SOC_MSS_mss_cfg.xml", XML_file_abs_path)
 
     # Select HSS configuration to build
-    def_config_file = os.path.join(hss_source, "boards/" + target_board + "/def_config")
+    def_config_file = os.path.join(cwd + "/hss.def_config")
     shutil.copyfile(def_config_file, os.path.join(hss_source, "./.config"))
 
     # Call HSS makefile

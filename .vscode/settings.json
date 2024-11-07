@@ -1,3 +1,7 @@
 {
-    "workbench.colorTheme": "Monokai Dimmed"
+    "workbench.colorTheme": "Visual Studio Dark",
+    "cmake.ignoreCMakeListsMissing": true,
+    "rust-analyzer.linkedProjects": [
+        "./scripts/flasher/Cargo.toml"
+    ]
 }

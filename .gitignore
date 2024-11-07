@@ -4,3 +4,4 @@ build_log.txt
 gateware/work/
 gateware/bitstream/
 *.img
+target/

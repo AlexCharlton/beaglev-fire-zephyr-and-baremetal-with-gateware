@@ -1,7 +1,7 @@
 use crossterm::event::{self, Event, KeyEvent};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use std::env;
-use std::io::{self, Read};
+use std::io::{self, Read, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -33,6 +33,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if let Ok(bytes_read) = port_reader.read(&mut serial_buf) {
                 if bytes_read > 0 {
                     print!("{}", String::from_utf8_lossy(&serial_buf[..bytes_read]));
+                    io::stdout().flush().unwrap(); // Ensure it's displayed immediately
                 }
             }
         }
@@ -50,16 +51,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     code: crossterm::event::KeyCode::Char('c'),
                     modifiers: crossterm::event::KeyModifiers::CONTROL,
                     ..
+                }) => break,
+                Event::Key(KeyEvent {
+                    code,
+                    kind:
+                        crossterm::event::KeyEventKind::Press | crossterm::event::KeyEventKind::Repeat,
+                    ..
                 }) => {
-                    disable_raw_mode()?;
-                    return Ok(());
-                }
-                Event::Key(KeyEvent { code, .. }) => {
                     // Handle the key event
                     if let crossterm::event::KeyCode::Char(c) = code {
                         port_writer.write_all(&[c as u8])?;
                     }
-                    // TODO handle other keys
+                    if let crossterm::event::KeyCode::Enter = code {
+                        port_writer.write_all(&[0x0d as u8])?;
+                    }
+                    if let crossterm::event::KeyCode::Backspace = code {
+                        port_writer.write_all(&[0x08 as u8])?;
+                    }
                 }
                 _ => {}
             }

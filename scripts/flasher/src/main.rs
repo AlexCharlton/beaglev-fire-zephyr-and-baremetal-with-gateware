@@ -2,15 +2,104 @@ use crossterm::event::{self, Event, KeyEvent};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use std::env;
 use std::io::{self, Read, Write};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
 use std::time::Duration;
 
+fn setup_serial_port(
+    port_name: &str,
+) -> Result<Box<dyn serialport::SerialPort>, serialport::Error> {
+    serialport::new(port_name, 115_200)
+        .timeout(Duration::from_millis(10))
+        .open()
+}
+
+fn spawn_reader_thread(mut port_reader: Box<dyn serialport::SerialPort>) {
+    std::thread::spawn(move || {
+        let mut serial_log: Vec<String> = Vec::new();
+        let mut current_line = String::new();
+        let mut serial_buf = [0u8; 1000];
+
+        loop {
+            if let Ok(bytes_read) = port_reader.read(&mut serial_buf) {
+                if bytes_read > 0 {
+                    let data = String::from_utf8_lossy(&serial_buf[..bytes_read]);
+                    print!("{}", data); // Print immediately for real-time output
+                    io::stdout().flush().unwrap();
+
+                    // Process the data character by character
+                    for c in data.chars() {
+                        if c == '\n' {
+                            // Push the completed line to the vector
+                            serial_log.push(current_line.clone());
+                            current_line.clear();
+                        } else if c != '\r' {
+                            // Skip carriage returns
+                            current_line.push(c);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+fn handle_key_event(
+    port_writer: &mut Box<dyn serialport::SerialPort>,
+    key_event: KeyEvent,
+    char_count: &mut usize,
+) -> io::Result<bool> {
+    match key_event {
+        KeyEvent {
+            code: crossterm::event::KeyCode::Char('t'),
+            modifiers: crossterm::event::KeyModifiers::CONTROL,
+            ..
+        } => Ok(true),
+
+        KeyEvent {
+            code: crossterm::event::KeyCode::Char('c'),
+            modifiers: crossterm::event::KeyModifiers::CONTROL,
+            kind: crossterm::event::KeyEventKind::Press,
+            ..
+        } => {
+            port_writer.write_all(&[0x03])?;
+            *char_count = 0;
+            Ok(false)
+        }
+
+        KeyEvent {
+            code,
+            kind: crossterm::event::KeyEventKind::Press | crossterm::event::KeyEventKind::Repeat,
+            ..
+        } => {
+            match code {
+                crossterm::event::KeyCode::Char(c) => {
+                    port_writer.write_all(&[c as u8])?;
+                    *char_count += 1;
+                }
+                crossterm::event::KeyCode::Enter => {
+                    port_writer.write_all(&[0x0d])?;
+                    *char_count = 0;
+                }
+                crossterm::event::KeyCode::Backspace => {
+                    if *char_count > 0 {
+                        port_writer.write_all(&[0x08])?;
+                        print!("\x08");
+                        io::stdout().flush()?;
+                        *char_count -= 1;
+                    }
+                }
+                crossterm::event::KeyCode::Esc => port_writer.write_all(&[0x1b])?,
+                _ => {}
+            }
+            Ok(false)
+        }
+
+        _ => Ok(false),
+    }
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Enable raw mode
     enable_raw_mode()?;
 
-    // Get port name from command line arguments
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
         eprintln!("Usage: {} <port>", args[0]);
@@ -18,63 +107,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let port_name = &args[1];
 
-    // Open serial port
-    let port = serialport::new(port_name, 115_200)
-        .timeout(Duration::from_millis(10))
-        .open()?;
+    let port = setup_serial_port(port_name)?;
+    println!("Connected to {}. Press Ctrl-T to exit.", port_name);
 
-    println!("Connected to {}. Press Ctrl-C to exit.", port_name);
+    let port_reader = port.try_clone()?;
+    spawn_reader_thread(port_reader);
 
-    // Create separate thread for reading from serial port
-    let mut port_reader = port.try_clone()?;
-    std::thread::spawn(move || {
-        let mut serial_buf = [0u8; 1000];
-        loop {
-            if let Ok(bytes_read) = port_reader.read(&mut serial_buf) {
-                if bytes_read > 0 {
-                    print!("{}", String::from_utf8_lossy(&serial_buf[..bytes_read]));
-                    io::stdout().flush().unwrap(); // Ensure it's displayed immediately
-                }
-            }
-        }
-    });
-
-    // Main thread handles keyboard input
     let mut port_writer = port;
+    let mut char_count = 0;
 
     loop {
-        // Reduce polling timeout to make ctrl-c more responsive
-        if event::poll(Duration::from_millis(10))? {
-            match event::read()? {
-                // Add check for ctrl-c
-                Event::Key(KeyEvent {
-                    code: crossterm::event::KeyCode::Char('c'),
-                    modifiers: crossterm::event::KeyModifiers::CONTROL,
-                    ..
-                }) => break,
-                Event::Key(KeyEvent {
-                    code,
-                    kind:
-                        crossterm::event::KeyEventKind::Press | crossterm::event::KeyEventKind::Repeat,
-                    ..
-                }) => {
-                    // Handle the key event
-                    if let crossterm::event::KeyCode::Char(c) = code {
-                        port_writer.write_all(&[c as u8])?;
-                    }
-                    if let crossterm::event::KeyCode::Enter = code {
-                        port_writer.write_all(&[0x0d as u8])?;
-                    }
-                    if let crossterm::event::KeyCode::Backspace = code {
-                        port_writer.write_all(&[0x08 as u8])?;
-                    }
+        if event::poll(Duration::from_millis(2))? {
+            if let Event::Key(key_event) = event::read()? {
+                if handle_key_event(&mut port_writer, key_event, &mut char_count)? {
+                    break;
                 }
-                _ => {}
             }
         }
     }
 
-    // Cleanup
     disable_raw_mode()?;
     Ok(())
 }

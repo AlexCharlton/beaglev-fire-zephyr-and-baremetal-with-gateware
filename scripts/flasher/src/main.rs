@@ -4,22 +4,35 @@ use std::env;
 use std::io::{self, Read, Write};
 use std::time::Duration;
 
-fn setup_serial_port(
-    port_name: &str,
-) -> Result<Box<dyn serialport::SerialPort>, serialport::Error> {
-    serialport::new(port_name, 115_200)
-        .timeout(Duration::from_millis(10))
-        .open()
+// TODO
+// Use the bottom line of the terminal to be a status line
+// that shows help text, and the status of the flasher
+// Can be TERMINAL mode
+// or FLASH mode, where we also display where we are in the flash process
+// CTRL-M toggles between modes
+
+enum Mode {
+    Terminal,
+    Flash,
 }
 
-fn spawn_reader_thread(mut port_reader: Box<dyn serialport::SerialPort>) {
+enum FlashState {
+    HssBooted,
+    HssInterruptPrompt,
+    // HssPrompt,
+    UsbHostConnecting,
+    Unknown,
+}
+
+fn spawn_reader_thread(mut port: Box<dyn serialport::SerialPort>) {
     std::thread::spawn(move || {
         let mut serial_log: Vec<String> = Vec::new();
         let mut current_line = String::new();
         let mut serial_buf = [0u8; 1000];
+        let mut current_state = FlashState::Unknown;
 
         loop {
-            if let Ok(bytes_read) = port_reader.read(&mut serial_buf) {
+            if let Ok(bytes_read) = port.read(&mut serial_buf) {
                 if bytes_read > 0 {
                     let data = String::from_utf8_lossy(&serial_buf[..bytes_read]);
                     print!("{}", data); // Print immediately for real-time output
@@ -29,6 +42,8 @@ fn spawn_reader_thread(mut port_reader: Box<dyn serialport::SerialPort>) {
                     for c in data.chars() {
                         if c == '\n' {
                             // Push the completed line to the vector
+                            current_state =
+                                handle_line(current_state, &mut port, &current_line).unwrap();
                             serial_log.push(current_line.clone());
                             current_line.clear();
                         } else if c != '\r' {
@@ -40,6 +55,26 @@ fn spawn_reader_thread(mut port_reader: Box<dyn serialport::SerialPort>) {
             }
         }
     });
+}
+
+fn handle_line(
+    current_state: FlashState,
+    port: &mut Box<dyn serialport::SerialPort>,
+    line: &str,
+) -> Result<FlashState, io::Error> {
+    if line.contains("PolarFire(R) SoC Hart Software Services (HSS)") {
+        return Ok(FlashState::HssBooted);
+    }
+    if line.contains("Press a key to enter CLI, ESC to skip") {
+        port.write_all("c\r\n".as_bytes())?;
+        return Ok(FlashState::HssInterruptPrompt);
+    }
+    if line.contains("Type HELP for list of commands") {
+        port.write_all("mmc\r\n".as_bytes())?;
+        port.write_all("usbdmsc\r\n".as_bytes())?;
+        return Ok(FlashState::UsbHostConnecting);
+    }
+    Ok(current_state)
 }
 
 fn handle_key_event(
@@ -95,6 +130,14 @@ fn handle_key_event(
 
         _ => Ok(false),
     }
+}
+
+fn setup_serial_port(
+    port_name: &str,
+) -> Result<Box<dyn serialport::SerialPort>, serialport::Error> {
+    serialport::new(port_name, 115_200)
+        .timeout(Duration::from_millis(10))
+        .open()
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

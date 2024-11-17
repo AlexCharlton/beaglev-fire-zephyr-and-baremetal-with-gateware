@@ -6,3 +6,5 @@ edition = "2021"
 [dependencies]
 serialport = "4.2"
 crossterm = "0.27"
+sysinfo = "0.32"
+windows = { version = "0.58", features = ["Win32_Storage_FileSystem", "Win32_System_WindowsProgramming"] }

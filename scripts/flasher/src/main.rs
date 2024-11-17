@@ -7,15 +7,16 @@ use crossterm::{
 };
 use std::env;
 use std::io::{self, Read, Write};
+use std::path::PathBuf;
 use std::sync::mpsc;
 use std::time::Duration;
 
-// TODO
-// Use the bottom line of the terminal to be a status line
-// that shows help text, and the status of the flasher
-// Can be TERMINAL mode
-// or FLASH mode, where we also display where we are in the flash process
-// CTRL-M toggles between modes
+mod drives;
+use drives::*;
+
+// TTY for BeagleV-Fire UART
+// Starts up in TERMINAL mode, where it functions as a normal TTY
+// CTRL-Y toggles FLASH mode, where rebooting will cause the flash process to start
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum Mode {
@@ -29,6 +30,7 @@ enum FlashState {
     HssBootedPostFlash,
     HssInterruptPrompt,
     UsbHostConnecting,
+    UsbHostConnected,
     FlashComplete,
     Unknown,
 }
@@ -44,8 +46,9 @@ impl Mode {
                 match flash_state {
                     FlashState::HssBooted => "HSS Booted",
                     FlashState::HssBootedPostFlash => "HSS Booted Post Flash",
-                    FlashState::HssInterruptPrompt => "Waiting for Interrupt",
+                    FlashState::HssInterruptPrompt => "Interrupting boot",
                     FlashState::UsbHostConnecting => "USB Host Connecting",
+                    FlashState::UsbHostConnected => "USB Host Connected",
                     FlashState::FlashComplete => "Flash Complete",
                     FlashState::Unknown => "Unknown",
                 }
@@ -77,9 +80,14 @@ fn update_status_line(mode: &Mode, flash_state: &FlashState) -> io::Result<()> {
 
 fn spawn_reader_thread(
     mut port: Box<dyn serialport::SerialPort>,
-) -> (mpsc::Receiver<FlashState>, mpsc::Sender<Mode>) {
+) -> (
+    mpsc::Receiver<FlashState>,
+    mpsc::Sender<Mode>,
+    mpsc::Sender<FlashState>,
+) {
     let (tx, rx) = mpsc::channel();
     let (mode_tx, mode_rx) = mpsc::channel();
+    let (state_tx, state_rx) = mpsc::channel();
 
     // Add file creation for logging
     let log_file = std::fs::File::create("serial.log").unwrap();
@@ -103,6 +111,11 @@ fn spawn_reader_thread(
             // Check for mode updates
             if let Ok(new_mode) = mode_rx.try_recv() {
                 current_mode = new_mode;
+            }
+
+            // Check for flash state updates from main thread
+            if let Ok(new_state) = state_rx.try_recv() {
+                current_state = new_state;
             }
 
             if let Ok(bytes_read) = port.read(&mut serial_buf) {
@@ -172,7 +185,7 @@ fn spawn_reader_thread(
         }
     });
 
-    (rx, mode_tx)
+    (rx, mode_tx, state_tx)
 }
 
 fn handle_line(
@@ -270,19 +283,22 @@ fn setup_serial_port(
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     enable_raw_mode()?;
+    let log_file = std::fs::File::create("flasher.log").unwrap();
+    let mut log_writer = std::io::BufWriter::new(log_file);
 
     let args: Vec<String> = env::args().collect();
-    if args.len() != 2 {
-        eprintln!("Usage: {} <port>", args[0]);
+    if args.len() != 3 {
+        eprintln!("Usage: {} <port> <image>", args[0]);
         std::process::exit(1);
     }
     let port_name = &args[1];
+    let image_path = &args[2];
 
     let port = setup_serial_port(port_name)?;
     println!("Connected to {}. Press Ctrl-T to exit.", port_name);
 
     let port_reader = port.try_clone()?;
-    let (rx, mode_tx) = spawn_reader_thread(port_reader);
+    let (rx, mode_tx, state_tx) = spawn_reader_thread(port_reader);
 
     let mut port_writer = port;
     let mut mode = Mode::Terminal;
@@ -291,12 +307,44 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initial status line
     update_status_line(&mode, &flash_state)?;
+    let mut drives = Vec::new();
+    let mut check_drives = false;
+    let mut drive_to_flash: Option<PathBuf> = None;
 
     loop {
         // Check for flash state updates (non-blocking)
         if let Ok(new_state) = rx.try_recv() {
             flash_state = new_state;
-            //update_status_line(&mode, &flash_state)?;
+            if flash_state == FlashState::HssInterruptPrompt {
+                drives = list_removable_drives();
+                check_drives = true;
+                log_writer.write_all(format!("Available drives: {:?}\n", drives).as_bytes())?;
+                log_writer.flush()?;
+            }
+        }
+        if check_drives {
+            log_writer.write_all(
+                format!("Checking drives: {:?}\n", list_removable_drives()).as_bytes(),
+            )?;
+            log_writer.flush()?;
+        }
+
+        if check_drives && flash_state == FlashState::UsbHostConnecting {
+            let new_drives = list_removable_drives();
+            if new_drives.len() > drives.len() {
+                // Find the new drive by comparing the two lists
+                let new_drive = new_drives
+                    .iter()
+                    .find(|drive| !drives.contains(drive))
+                    .expect("Should have found a new drive");
+                flash_state = FlashState::UsbHostConnected;
+                state_tx.send(flash_state)?;
+                log_writer
+                    .write_all(format!("New drive detected: {:?}\n", new_drive).as_bytes())?;
+                log_writer.flush()?;
+                check_drives = false;
+                drive_to_flash = Some(new_drive.clone());
+            }
         }
 
         if event::poll(Duration::from_millis(2))? {

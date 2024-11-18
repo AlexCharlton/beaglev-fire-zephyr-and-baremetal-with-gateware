@@ -7,7 +7,6 @@ use crossterm::{
 };
 use std::env;
 use std::io::{self, Read, Write};
-use std::path::PathBuf;
 use std::sync::mpsc;
 use std::time::Duration;
 
@@ -31,6 +30,7 @@ enum FlashState {
     HssInterruptPrompt,
     UsbHostConnecting,
     UsbHostConnected,
+    Flashing,
     FlashComplete,
     Unknown,
 }
@@ -49,6 +49,7 @@ impl Mode {
                     FlashState::HssInterruptPrompt => "Interrupting boot",
                     FlashState::UsbHostConnecting => "USB Host Connecting",
                     FlashState::UsbHostConnected => "USB Host Connected",
+                    FlashState::Flashing => "Flashing",
                     FlashState::FlashComplete => "Flash Complete",
                     FlashState::Unknown => "Unknown",
                 }
@@ -309,7 +310,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     update_status_line(&mode, &flash_state)?;
     let mut drives = Vec::new();
     let mut check_drives = false;
-    let mut drive_to_flash: Option<PathBuf> = None;
 
     loop {
         // Check for flash state updates (non-blocking)
@@ -343,7 +343,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .write_all(format!("New drive detected: {:?}\n", new_drive).as_bytes())?;
                 log_writer.flush()?;
                 check_drives = false;
-                drive_to_flash = Some(new_drive.clone());
+                let drive_to_flash = new_drive.clone();
+                flash_state = FlashState::Flashing;
+                state_tx.send(flash_state)?;
+                log_writer.write_all(
+                    format!(
+                        "Flashing image {:?} to drive {:?}\n",
+                        image_path, drive_to_flash
+                    )
+                    .as_bytes(),
+                )?;
+                flash_image_to_drive(image_path, &drive_to_flash, &mut log_writer)?;
+                eject_drive(&drive_to_flash)?;
+                log_writer.write_all(format!("Drive ejected\n").as_bytes())?;
+                port_writer.write_all(&[0x03])?;
             }
         }
 

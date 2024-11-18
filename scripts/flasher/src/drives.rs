@@ -46,7 +46,7 @@ pub fn list_removable_drives() -> Vec<PathBuf> {
     }
 }
 
-pub fn eject_drive(mount_point: &str) -> io::Result<()> {
+pub fn eject_drive(mount_point: &PathBuf) -> io::Result<()> {
     #[cfg(target_os = "linux")]
     {
         // On Linux, we can use the 'eject' command
@@ -70,7 +70,7 @@ pub fn eject_drive(mount_point: &str) -> io::Result<()> {
                 "-Command",
                 &format!(
                     "($driveEject = New-Object -comObject Shell.Application).Namespace(17).ParseName('{}').InvokeVerb('Eject')",
-                    mount_point
+                    mount_point.display()
                 ),
             ])
             .output()
@@ -86,31 +86,47 @@ pub fn eject_drive(mount_point: &str) -> io::Result<()> {
     }
 }
 
-pub fn flash_image_to_drive(image_path: &str, target_drive: &str) -> io::Result<()> {
-    // Open the source image file
+pub fn flash_image_to_drive(
+    image_path: &str,
+    target_drive: &PathBuf,
+    log_writer: &mut std::io::BufWriter<File>,
+) -> io::Result<()> {
     let mut source = File::open(image_path)?;
 
-    // Open the target drive with write permissions
     #[cfg(unix)]
-    let target_path = format!("/dev/{}", target_drive);
+    let target_path = format!("/dev/{}", target_drive.display());
     #[cfg(windows)]
-    let target_path = format!(r"\\.\{}", target_drive); // Raw device access format
+    let target_path = format!(
+        r"\\.\{}:",
+        target_drive
+            .to_string_lossy()
+            .trim_end_matches('\\')
+            .trim_end_matches(':')
+    );
 
+    log_writer.write_all(format!("Opening target at: {}\n", target_path).as_bytes())?;
     let mut target = File::options().write(true).open(&target_path)?;
+    log_writer.write_all(format!("Opened target at: {}\n", target_path).as_bytes())?;
 
     // Seek to the beginning of both files
     source.seek(SeekFrom::Start(0))?;
     target.seek(SeekFrom::Start(0))?;
 
-    // Use a buffer for efficient copying
-    let mut buffer = [0; 1024 * 1024]; // 1MB buffer
+    let mut buffer = vec![0; 512]; // Use 512 bytes (typical sector size)
+
     loop {
         let bytes_read = source.read(&mut buffer)?;
         if bytes_read == 0 {
             break;
         }
-        target.write_all(&buffer[..bytes_read])?;
-        target.flush()?; // Ensure data is written to disk
+        log_writer.write_all(format!("Read {} bytes\n", bytes_read).as_bytes())?;
+
+        if bytes_read < 512 {
+            // Pad the remaining buffer with zeros to complete the sector
+            buffer[bytes_read..512].fill(0);
+        }
+        target.write_all(&buffer[..512])?;
+        log_writer.write_all(format!("Wrote {} bytes\n", bytes_read).as_bytes())?;
     }
 
     Ok(())

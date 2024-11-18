@@ -53,7 +53,7 @@ void thread2_entry(void *p1, void *p2, void *p3)
 
 int main(void)
 {
-	printf("Hello World! %s\n", CONFIG_BOARD_TARGET);
+	printf("Hello my beautiful world! %s\n", CONFIG_BOARD_TARGET);
 	// Create two threads with different CPU affinities
 	k_thread_create(&thread0_data, thread0_stack,
 					K_THREAD_STACK_SIZEOF(thread0_stack),

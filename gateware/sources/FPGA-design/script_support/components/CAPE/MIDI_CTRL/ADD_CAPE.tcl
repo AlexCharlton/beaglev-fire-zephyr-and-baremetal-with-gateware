@@ -1,15 +1,15 @@
-puts "======== Add cape option: MIDI_CTRL ========"
+puts "======== Add cape option: BLINKY ========"
 
 #-------------------------------------------------------------------------------
 # Import HDL source files
 #-------------------------------------------------------------------------------
-import_files -hdl_source {script_support/components/CAPE/MIDI_CTRL/HDL/blinky.v}
-import_files -hdl_source {script_support/components/CAPE/MIDI_CTRL/HDL/apb_ctrl_status.v}
-import_files -hdl_source {script_support/components/CAPE/MIDI_CTRL/HDL/P8_IOPADS.v}
-import_files -hdl_source {script_support/components/CAPE/MIDI_CTRL/HDL/P9_11_18_IOPADS.v}
-import_files -hdl_source {script_support/components/CAPE/MIDI_CTRL/HDL/P9_21_31_IOPADS.v}
-import_files -hdl_source {script_support/components/CAPE/MIDI_CTRL/HDL/P9_41_42_IOPADS.v}
-import_files -hdl_source {script_support/components/CAPE/MIDI_CTRL/HDL/CAPE.v}
+import_files -hdl_source {script_support/components/CAPE/BLINKY/HDL/blinky.v}
+import_files -hdl_source {script_support/components/CAPE/BLINKY/HDL/apb_ctrl_status.v}
+import_files -hdl_source {script_support/components/CAPE/BLINKY/HDL/P8_IOPADS.v}
+import_files -hdl_source {script_support/components/CAPE/BLINKY/HDL/P9_11_18_IOPADS.v}
+import_files -hdl_source {script_support/components/CAPE/BLINKY/HDL/P9_21_31_IOPADS.v}
+import_files -hdl_source {script_support/components/CAPE/BLINKY/HDL/P9_41_42_IOPADS.v}
+import_files -hdl_source {script_support/components/CAPE/BLINKY/HDL/CAPE.v}
 
 build_design_hierarchy
 

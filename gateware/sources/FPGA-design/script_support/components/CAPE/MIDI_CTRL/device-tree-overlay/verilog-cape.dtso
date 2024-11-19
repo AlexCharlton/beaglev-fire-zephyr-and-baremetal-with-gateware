@@ -3,7 +3,7 @@
 
 &{/chosen} {
 	overlays {
-		MIDI-CTRL-GATEWARE = "GATEWARE_GIT_VERSION";
+		BLINKY-GATEWARE = "GATEWARE_GIT_VERSION";
 	};
 };
 

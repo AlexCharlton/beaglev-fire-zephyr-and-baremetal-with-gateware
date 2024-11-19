@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source ~/.profile
+source ~/.profile # Useful when being called by WSL
 # Current directory that this script is in
 PROJECT_DIR=$(dirname "$(readlink -f "$0")")/..
 

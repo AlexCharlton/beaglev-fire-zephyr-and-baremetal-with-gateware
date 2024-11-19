@@ -19,6 +19,7 @@ use drives::*;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum Mode {
+    TerminalOnly,
     Terminal,
     Flash,
 }
@@ -38,6 +39,7 @@ enum FlashState {
 impl Mode {
     fn status_text(&self, flash_state: &FlashState) -> String {
         match self {
+            Mode::TerminalOnly => "\x1b[7mTERMINAL MODE | Ctrl-T: Exit\x1b[0m".to_string(),
             Mode::Terminal => {
                 "\x1b[7mTERMINAL MODE | Ctrl-T: Exit | Ctrl-Y: Toggle Mode\x1b[0m".to_string()
             }
@@ -81,6 +83,7 @@ fn update_status_line(mode: &Mode, flash_state: &FlashState) -> io::Result<()> {
 
 fn spawn_reader_thread(
     mut port: Box<dyn serialport::SerialPort>,
+    mode: Mode,
 ) -> (
     mpsc::Receiver<FlashState>,
     mpsc::Sender<Mode>,
@@ -106,7 +109,7 @@ fn spawn_reader_thread(
         let mut current_line = String::new();
         let mut serial_buf = [0u8; 1000];
         let mut current_state = FlashState::Unknown;
-        let mut current_mode = Mode::Terminal;
+        let mut current_mode = mode;
 
         loop {
             // Check for mode updates
@@ -288,21 +291,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut log_writer = std::io::BufWriter::new(log_file);
 
     let args: Vec<String> = env::args().collect();
-    if args.len() != 3 {
-        eprintln!("Usage: {} <port> <image>", args[0]);
+    if args.len() < 2 || args.len() > 3 {
+        eprintln!("Usage: flasher <port> [<image>]");
         std::process::exit(1);
     }
     let port_name = &args[1];
-    let image_path = &args[2];
+    let image_path = if args.len() == 3 {
+        Some(&args[2])
+    } else {
+        None
+    };
+
+    let mut mode = Mode::Terminal;
+    if image_path.is_none() {
+        println!("No image specified. Flash mode will not be available.");
+        mode = Mode::TerminalOnly;
+    }
 
     let port = setup_serial_port(port_name)?;
     println!("Connected to {}. Press Ctrl-T to exit.", port_name);
 
     let port_reader = port.try_clone()?;
-    let (rx, mode_tx, state_tx) = spawn_reader_thread(port_reader);
+    let (rx, mode_tx, state_tx) = spawn_reader_thread(port_reader, mode);
 
     let mut port_writer = port;
-    let mut mode = Mode::Terminal;
     let mut flash_state = FlashState::Unknown;
     let mut char_count = 0;
 
@@ -353,7 +365,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     )
                     .as_bytes(),
                 )?;
-                flash_image_to_drive(image_path, &drive_to_flash, &mut log_writer)?;
+                flash_image_to_drive(image_path.unwrap(), &drive_to_flash, &mut log_writer)?;
                 eject_drive(&drive_to_flash)?;
                 log_writer.write_all(format!("Drive ejected\n").as_bytes())?;
                 port_writer.write_all(&[0x03])?;
@@ -362,23 +374,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         if event::poll(Duration::from_millis(2))? {
             if let Event::Key(key_event) = event::read()? {
-                // Handle mode toggle
-                match key_event {
-                    KeyEvent {
-                        code: KeyCode::Char('y'),
-                        modifiers: KeyModifiers::CONTROL,
-                        kind: KeyEventKind::Press,
-                        ..
-                    } => {
-                        mode = match mode {
-                            Mode::Terminal => Mode::Flash,
-                            Mode::Flash => Mode::Terminal,
-                        };
-                        mode_tx.send(mode).unwrap();
-                        update_status_line(&mode, &flash_state)?;
-                        continue;
+                if mode != Mode::TerminalOnly {
+                    // Handle mode toggle
+                    match key_event {
+                        KeyEvent {
+                            code: KeyCode::Char('y'),
+                            modifiers: KeyModifiers::CONTROL,
+                            kind: KeyEventKind::Press,
+                            ..
+                        } => {
+                            mode = match mode {
+                                Mode::Terminal => Mode::Flash,
+                                Mode::Flash => Mode::Terminal,
+                                _ => unreachable!(),
+                            };
+                            mode_tx.send(mode).unwrap();
+                            update_status_line(&mode, &flash_state)?;
+                            continue;
+                        }
+                        _ => {}
                     }
-                    _ => {}
                 }
 
                 if handle_key_event(&mut port_writer, key_event, &mut char_count)? {

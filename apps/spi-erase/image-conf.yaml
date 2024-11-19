@@ -1,0 +1,13 @@
+set-name: 'PolarFire-SoC-HSS::SPIErase'
+
+# Define the entry point address for each hart (U54 cores)
+hart-entry-points:
+  u54_1: '0x1000000000'
+
+# Define the payloads (ELF binaries or raw blobs)
+payloads:
+   zephyr.elf:
+    exec-addr: '0x1000000000'  # Where Zephyr should be loaded
+    owner-hart: u54_1
+    priv-mode: prv_m  # Start in Machine mode
+    skip-opensbi: true  # Optional: Boot directly without OpenSBI

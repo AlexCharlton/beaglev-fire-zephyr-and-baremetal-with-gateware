@@ -26,10 +26,10 @@ cd $ZEPHYR_WORKSPACE
 source .venv/bin/activate
 rsync -a --delete $PROJECT_DIR/apps/ $ZEPHYR_WORKSPACE/applications/
 
-west build -p always -b beaglev_fire/polarfire/u54/smp -s $ZEPHYR_WORKSPACE/applications/$APP_NAME
+west build -p always -s $ZEPHYR_WORKSPACE/applications/$APP_NAME
 
 cd $ZEPHYR_WORKSPACE/build/zephyr
-hss-payload-generator -c $PROJECT_DIR/image-conf.yaml zephyr.img
+hss-payload-generator -c $PROJECT_DIR/apps/$APP_NAME/image-conf.yaml zephyr.img
 mkdir -p $PROJECT_DIR/build
 rsync -a $ZEPHYR_WORKSPACE/build/zephyr/zephyr.* $PROJECT_DIR/build
 echo "Build complete"

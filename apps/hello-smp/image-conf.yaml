@@ -1,4 +1,4 @@
-set-name: 'PolarFire-SoC-HSS::ZephyrTESTImage'
+set-name: 'PolarFire-SoC-HSS::ZephyrHelloSMP'
 
 # Define the entry point address for each hart (U54 cores)
 hart-entry-points:

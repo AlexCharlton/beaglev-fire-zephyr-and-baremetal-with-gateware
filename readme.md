@@ -1,16 +1,15 @@
 ## Usage
 
 Building RISCV application:
+```sh
+$ ./scripts/build.bat hello-smp
 ```
-$ ./scripts/connect-tty.sh
-# Hit a key to stop boot, then
-# >> mmc
-# >> usbdmsc
 
-$ ./scripts/build-flash.sh
-$ ./scripts/connect-openocd.sh
-$ ./scripts/connect-gdb.bat
+Programming the image:
+```sh
+$ flasher COM5 build/zephyr.img
 ```
+CTRL-Y to enter FLASH mode, then reset to program the image.
 
 Building FPGA gateware+HSS:
 ```
@@ -21,6 +20,12 @@ Open FPExpress, open `gateware/bitstream/FlashProExpress/BLINKY_<HASH>.job`, run
 
 
 ## Requirements
+Cargo, to install flasher:
+```sh
+$ cd flasher
+$ cargo install --path .
+```
+
 On Windows/Mingw64:
 - Install Libero, SoftConsole
 

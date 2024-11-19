@@ -9,7 +9,7 @@ hart-entry-points:
 
 # Define the payloads (ELF binaries or raw blobs)
 payloads:
-   zephyrproject/build/zephyr/zephyr.elf:
+   zephyr.elf:
     exec-addr: '0x1000000000'  # Where Zephyr should be loaded
     owner-hart: u54_1
     secondary-hart: u54_2

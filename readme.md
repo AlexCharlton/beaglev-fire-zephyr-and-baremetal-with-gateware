@@ -18,6 +18,13 @@ $ ./scripts/build-hss-fpga-bitstream.sh
 It takes serveral minutes to build.
 Open FPExpress, open `gateware/bitstream/FlashProExpress/BLINKY_<HASH>.job`, run "Program".
 
+### Configuring HSS
+```sh
+$ cd gateware/sources/HSS
+$ make config
+...
+$ cp .config ../../hss.def_config
+```
 
 ## Requirements
 Cargo, to install flasher:

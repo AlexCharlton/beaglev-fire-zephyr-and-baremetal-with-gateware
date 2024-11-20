@@ -19,10 +19,24 @@ void main(void)
 		printf("Flash device not ready\n");
 		return;
 	}
-
 	printf("Flash device ready\n");
 
-	/* Define the offset and size for erase */
+	/*
+		uint32_t buffer[3]; // Array to hold three 32-bit values (12 bytes total)
+
+		ret = flash_read(flash_dev, 0x0, buffer, sizeof(buffer));
+		if (ret != 0)
+		{
+			printf("Flash read failed: %d\n", ret);
+			return;
+		}
+
+		for (int i = 0; i < 3; i++)
+		{
+			printf("Address 0x%08x: 0x%08x\n", i * 4, buffer[i]);
+		}
+	*/
+
 	off_t offset = 0x0;	   // Start at the beginning of the flash (block 0)
 	size_t size = 0x10000; // Erase 1 block (adjust to block size, typically 64 KB for SPI NOR)
 

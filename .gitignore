@@ -6,3 +6,4 @@ gateware/work/
 gateware/bitstream/
 build/
 target/
+.vscode/

@@ -1,7 +1,0 @@
-{
-    "workbench.colorTheme": "Visual Studio Dark",
-    "cmake.ignoreCMakeListsMissing": true,
-    "rust-analyzer.linkedProjects": [
-        "./flasher/Cargo.toml"
-    ]
-}

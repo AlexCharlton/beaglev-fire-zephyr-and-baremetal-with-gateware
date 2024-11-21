@@ -2,8 +2,8 @@
 
 set -e
 
-PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/.."
+PROJECT_DIR=$(dirname "$(readlink -f "$0")")/..
+source $PROJECT_DIR/scripts/script-config.sh
 
 cd $PROJECT_DIR/gateware
-source ./setup-microchip-tools.sh
-python3 build-bitstream.py blinky.yaml
+python3 build-bitstream.py $PROJECT_DIR/$GATEWARE_CONFIG_FILE

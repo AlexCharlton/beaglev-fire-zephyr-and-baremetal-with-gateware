@@ -1,6 +1,7 @@
 *.pyc
 *.log
 build_log.txt
+scripts/.build.bat
 gateware/work/
 gateware/bitstream/
 build/

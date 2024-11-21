@@ -36,12 +36,17 @@ Building Zephyr application:
 $ ./scripts/build.sh apps/hello-smp
 ```
 
-Programming the image:
+With a serial cable connected (I use [this one](https://www.adafruit.com/product/954)), use flasher to program the image:
 ```sh
 $ flasher [your-serial-port] build/zephyr.img
 $ # eg. flasher COM5 build/zephyr.img
 ```
-CTRL-Y to enter FLASH mode, then reset to program the image.
+
+CTRL-Y enters FLASH mode, then reset the board to program the image.
+
+flasher acts as a serial terminal, so it's generally useful to keep open to see the output/logs of the application. CTRL-T to exit.
+
+flasher works by interrupting the HSS bootloader to enter its console, then executes the `mmc` and `usbdmsc` commands to mount the eMMC as a USB drive. It detects newly mounted drives, and writes the given image to it, before unmounting and rebooting the device.
 
 ### GDB debugging
 With a JTAG debugger (FlashPro) connected, run:
@@ -56,9 +61,10 @@ $ ./scripts/connect-gdb.sh
 
 `scripts/init.gdb` can be modified to suit your needs.
 
-### Programming FPGA gateware+HSS
+### Programming FPGA gateware + HSS
 Run the `apps/spi-erase` app (built per the instructions above) to clear the SPI flash before programming the image for the first time. Otherwise, your changes will be overwritten by the [golden image](https://ww1.microchip.com/downloads/aemDocuments/documents/FPGA/ProductDocuments/UserGuides/PolarFire_FPGA_and_PolarFire_SoC_FPGA_Programming_User_Guide_VB.pdf) that is programmed into the BeagleV Fire. **This only needs to be done once.**
 
+Build the FPGA + HSS bitstream:
 ```sh
 $ ./scripts/build-hss-fpga-bitstream.sh
 ```

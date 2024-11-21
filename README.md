@@ -17,9 +17,9 @@ Install [Libero](https://www.microchip.com/en-us/products/fpgas-and-plds/fpga-an
 
 Python3 required for the gateware builder. Install Python libraries:
 ```sh
-pip3 install gitpython
-pip3 install pyyaml
-pip3 install requests
+$ pip3 install gitpython
+$ pip3 install pyyaml
+$ pip3 install requests
 ```
 
 On *nix:
@@ -42,6 +42,19 @@ $ flasher [your-serial-port] build/zephyr.img
 $ # eg. flasher COM5 build/zephyr.img
 ```
 CTRL-Y to enter FLASH mode, then reset to program the image.
+
+### GDB debugging
+With a JTAG debugger (FlashPro) connected, run:
+```sh
+$ ./scripts/connect-openocd.sh
+```
+
+Then in another terminal, run:
+```sh
+$ ./scripts/connect-gdb.sh
+```
+
+`scripts/init.gdb` can be modified to suit your needs.
 
 ### Programming FPGA gateware+HSS
 Run the `apps/spi-erase` app (built per the instructions above) to clear the SPI flash before programming the image for the first time. Otherwise, your changes will be overwritten by the [golden image](https://ww1.microchip.com/downloads/aemDocuments/documents/FPGA/ProductDocuments/UserGuides/PolarFire_FPGA_and_PolarFire_SoC_FPGA_Programming_User_Guide_VB.pdf) that is programmed into the BeagleV Fire. **This only needs to be done once.**

@@ -5,6 +5,9 @@ ZEPHYR_WORKSPACE=~/zephyrproject
 # Gateware config file, relative to project root
 GATEWARE_CONFIG_FILE=gateware/blinky.yaml
 
+# Zephyr-rust directory
+ZEPHYR_RUST_DIR=~/src/zephyr-rust
+
 #===============================================================================
 # Edit the following section with the location where the following tools are
 # installed:

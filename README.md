@@ -70,7 +70,7 @@ $ ./scripts/build-hss-fpga-bitstream.sh
 ```
 It takes serveral minutes to build.
 
-Open FPExpress, open `gateware/bitstream/FlashProExpress/BLINKY_<HASH>.job`, run "Program".
+Open FPExpress, open `gateware/bitstream/FlashProExpress/BLINKY_<HASH>.job`, run "Program". When it's done, the board will reboot.
 
 ### Configuring HSS
 ```sh

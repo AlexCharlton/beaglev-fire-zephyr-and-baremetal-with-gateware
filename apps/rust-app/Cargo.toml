@@ -1,0 +1,12 @@
+[package]
+name = "app"
+version = "0.1.0"
+authors = ["Alex Charlton <alex.n.charlton@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+cstr = "0.2.10"
+log = "0.4"
+zephyr = { git="https://github.com/tylerwhall/zephyr-rust.git" }
+zephyr-macros = { git="https://github.com/tylerwhall/zephyr-rust.git" }
+zephyr-logger = { git="https://github.com/tylerwhall/zephyr-rust.git" }

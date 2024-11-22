@@ -19,6 +19,11 @@ set +e # Ignore if the source fails
 source ~/.profile # Useful when being called by WSL
 set -e # Exit on error
 source $PROJECT_DIR/scripts/script-config.sh
+if [ -n "$ZEPHYR_EXTRA_MODULES" ]; then
+    export ZEPHYR_EXTRA_MODULES="$ZEPHYR_RUST_DIR;$ZEPHYR_EXTRA_MODULES"
+else
+    export ZEPHYR_EXTRA_MODULES="$ZEPHYR_RUST_DIR"
+fi
 
 # Check if exactly one argument was provided
 if [ "$#" -ne 1 ]; then

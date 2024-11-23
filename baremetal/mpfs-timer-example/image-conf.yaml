@@ -9,7 +9,7 @@ hart-entry-points:
 
 # Define the payloads (ELF binaries or raw blobs)
 payloads:
-   DDR-Release/mpfs-timer-example.elf:
+   build/mpfs-timer-example.elf:
     exec-addr: '0x80000000'
     owner-hart: u54_1
     priv-mode: prv_m  # Start in Machine mode

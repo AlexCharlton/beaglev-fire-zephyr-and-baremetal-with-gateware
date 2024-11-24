@@ -1,0 +1,9 @@
+/.settings*/
+*.log
+*.img
+*.o
+*.d
+*.map
+*.elf
+*.lst
+*.bin

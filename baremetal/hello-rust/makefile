@@ -1,21 +1,22 @@
 .DEFAULT_GOAL := all
 
 BUILD_DIR := build
+PLATFORM_DIR := mpfs-platform
 
-# Recursively find all C source files under src/, excluding ethernet_mac
-C_SRCS := $(shell find src -type f -name "*.c" ! \( -path "src/platform/drivers/mss/*" -a ! \( -path "src/platform/drivers/mss/mss_mmuart/*" -o -path "src/platform/drivers/mss/mss_gpio/*" \) \) )
+# Recursively find all C source files under ${PLATFORM_DIR}, excluding ethernet_mac
+C_SRCS := $(shell find mpfs-platform -type f -name "*.c" ! \( -path "mpfs-platform/platform/drivers/mss/*" -a ! \( -path "mpfs-platform/platform/drivers/mss/mss_mmuart/*" -o -path "mpfs-platform/platform/drivers/mss/mss_gpio/*" \) \) )
 # Convert source paths to object paths under build/
 OBJS := $(C_SRCS:%.c=$(BUILD_DIR)/%.o)
 # Generate dependency file paths
 C_DEPS := $(OBJS:%.o=%.d)
 
-S_UPPER_SRCS += src/platform/mpfs_hal/startup_gcc/mss_entry.S \
-	src/platform/mpfs_hal/startup_gcc/mss_utils.S \
-	src/platform/hal/hw_reg_access.S
+S_UPPER_SRCS += ${PLATFORM_DIR}/platform/mpfs_hal/startup_gcc/mss_entry.S \
+	${PLATFORM_DIR}/platform/mpfs_hal/startup_gcc/mss_utils.S \
+	${PLATFORM_DIR}/platform/hal/hw_reg_access.S
 S_UPPER_DEPS += $(S_UPPER_SRCS:%.S=%.d)
-OBJS += $(BUILD_DIR)/src/platform/mpfs_hal/startup_gcc/mss_entry.o \
-	$(BUILD_DIR)/src/platform/mpfs_hal/startup_gcc/mss_utils.o \
-	$(BUILD_DIR)/src/platform/hal/hw_reg_access.o
+OBJS += $(BUILD_DIR)/${PLATFORM_DIR}/platform/mpfs_hal/startup_gcc/mss_entry.o \
+	$(BUILD_DIR)/${PLATFORM_DIR}/platform/mpfs_hal/startup_gcc/mss_utils.o \
+	$(BUILD_DIR)/${PLATFORM_DIR}/platform/hal/hw_reg_access.o
 
 ifneq ($(MAKECMDGOALS),clean)
 ifneq ($(strip $(S_UPPER_DEPS)),)
@@ -42,18 +43,24 @@ $(BUILD_DIR)/$(BUILD_ARTIFACT_NAME).siz \
 
 IMG_TARGET := $(BUILD_DIR)/application.img
 
+RUST_TARGET := target/riscv64gc-unknown-none-elf/release/libapplication.a
+OBJS += $(RUST_TARGET)
+
 # All Target
 all:
 	$(MAKE) --no-print-directory main-build
 
 # Main-build Target
-main-build: $(ELF_TARGET) secondary-outputs $(IMG_TARGET)
+main-build: rust-build $(ELF_TARGET) secondary-outputs $(IMG_TARGET)
+
+rust-build:
+	cargo build --release
 
 # Tool invocations
 $(ELF_TARGET): $(OBJS) makefile
 	@echo 'Building target: $@'
 	@echo 'Invoking: GNU RISC-V Cross C Linker'
-	riscv64-unknown-elf-gcc -march=rv64gc -mabi=lp64d -mcmodel=medany -msmall-data-limit=8 -mstrict-align -mno-save-restore -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections  -g -T "src/platform/platform_config_reference/linker/mpfs-ddr-loaded-by-boot-loader.ld" -nostartfiles -Xlinker --gc-sections -Wl,-Map,"${BUILD_DIR}/$(BUILD_ARTIFACT_NAME).map" --specs=nano.specs --specs=nosys.specs -o "$(ELF_TARGET)" $(OBJS)  $(LIBS)
+	riscv64-unknown-elf-gcc -march=rv64gc -mabi=lp64d -mcmodel=medany -msmall-data-limit=8 -mstrict-align -mno-save-restore -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections  -g -T "${PLATFORM_DIR}/platform/platform_config_reference/linker/mpfs-ddr-loaded-by-boot-loader.ld" -nostartfiles -Xlinker --gc-sections -Wl,-Map,"${BUILD_DIR}/$(BUILD_ARTIFACT_NAME).map" --specs=nano.specs --specs=nosys.specs -o "$(ELF_TARGET)" $(OBJS)  $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -90,7 +97,7 @@ $(BUILD_DIR)/%.o: %.c
 	@mkdir -p $(dir $@)
 	@echo 'Building file: $<'
 	@echo 'Invoking: GNU RISC-V Cross C Compiler'
-	riscv64-unknown-elf-gcc -march=rv64gc -mabi=lp64d -mcmodel=medany -msmall-data-limit=8 -mstrict-align -mno-save-restore -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections  -g -DNDEBUG -I"src/application" -I"src/boards/beaglev-fire/platform_config" -I"src/platform" -I"src/boards/beaglev-fire" -std=gnu11 -Wstrict-prototypes -Wbad-function-cast -Wa,-adhlns="$@.lst" --specs=nano.specs -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" -c -o "$@" "$<"
+	riscv64-unknown-elf-gcc -march=rv64gc -mabi=lp64d -mcmodel=medany -msmall-data-limit=8 -mstrict-align -mno-save-restore -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections  -g -DNDEBUG -I"${PLATFORM_DIR}/application" -I"${PLATFORM_DIR}/boards/beaglev-fire/platform_config" -I"${PLATFORM_DIR}/platform" -I"${PLATFORM_DIR}/boards/beaglev-fire" -std=gnu11 -Wstrict-prototypes -Wbad-function-cast -Wa,-adhlns="$@.lst" --specs=nano.specs -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" -c -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
@@ -98,7 +105,7 @@ $(BUILD_DIR)/%.o: %.c
 $(BUILD_DIR)/%.o: %.S
 	@mkdir -p $(dir $@)
 	@echo 'Building file: $<'
-	riscv64-unknown-elf-gcc -march=rv64gc -mabi=lp64d -mcmodel=medany -msmall-data-limit=8 -mstrict-align -mno-save-restore -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections  -g -x assembler-with-cpp -DNDEBUG -I"src/application" -I"src/boards/beaglev-fire/platform_config" -I"src/platform" -I"src/boards/beaglev-fire" --specs=nano.specs -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" -c -o "$@" "$<"
+	riscv64-unknown-elf-gcc -march=rv64gc -mabi=lp64d -mcmodel=medany -msmall-data-limit=8 -mstrict-align -mno-save-restore -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections  -g -x assembler-with-cpp -DNDEBUG -I"${PLATFORM_DIR}/application" -I"${PLATFORM_DIR}/boards/beaglev-fire/platform_config" -I"${PLATFORM_DIR}/platform" -I"${PLATFORM_DIR}/boards/beaglev-fire" --specs=nano.specs -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" -c -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

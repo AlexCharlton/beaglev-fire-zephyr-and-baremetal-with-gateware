@@ -44,7 +44,7 @@ $(BUILD_DIR)/$(BUILD_ARTIFACT_NAME).siz \
 IMG_TARGET := $(BUILD_DIR)/application.img
 
 RUST_TARGET := target/riscv64gc-unknown-none-elf/release/libapplication.a
-OBJS += $(RUST_TARGET)
+#OBJS += $(RUST_TARGET)
 
 # All Target
 all:

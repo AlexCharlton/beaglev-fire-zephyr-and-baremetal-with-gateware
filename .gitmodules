@@ -1,3 +1,6 @@
 [submodule "baremetal/mpfs-timer-example/src/platform"]
 	path = baremetal/mpfs-timer-example/src/platform
 	url = https://github.com/polarfire-soc/platform.git
+[submodule "baremetal/hello-rust/mpfs-platform/platform"]
+	path = baremetal/hello-rust/mpfs-platform/platform
+	url = https://github.com/polarfire-soc/platform.git

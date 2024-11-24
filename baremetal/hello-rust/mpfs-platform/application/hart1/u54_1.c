@@ -1,4 +1,3 @@
-/*
 #include <stdio.h>
 #include <string.h>
 #include "mpfs_hal/mss_hal.h"
@@ -24,4 +23,3 @@ void u54_1(void)
     MSS_UART_polled_tx_string(&g_mss_uart0_lo, "\r\n");
     MSS_UART_polled_tx_string(&g_mss_uart0_lo, "Hello World!\r\n");
 }
-*/

@@ -26,7 +26,7 @@ pub extern "C" fn u54_1() {
         // Initialize UART0
         uart_init();
         uart_puts("\r\n".as_ptr());
-        uart_puts("Hello World!\r\n".as_ptr());
+        uart_puts("Hello World from rust!\r\n".as_ptr());
     }
 }
 

@@ -6,10 +6,3 @@ rustflags = [
     "-C", "link-arg=-Tmpfs-platform/platform_config_reference/linker/mpfs-ddr-loaded-by-boot-loader.ld",
     "-C", "link-arg=--gc-sections",
 ]
-
-# [build]
-# target = "riscv64gc-lp64d.json"
-# rustflags = [
-    # "-C", "link-arg=-Tmpfs-platform/platform_config_reference/linker/mpfs-ddr-loaded-by-boot-loader.ld",
-    # "-C", "link-arg=--gc-sections",
-# ]

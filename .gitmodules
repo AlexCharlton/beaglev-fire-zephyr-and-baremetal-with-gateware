@@ -3,4 +3,4 @@
 	url = https://github.com/polarfire-soc/platform.git
 [submodule "baremetal/hello-rust/mpfs-platform/platform"]
 	path = baremetal/hello-rust/mpfs-platform/platform
-	url = https://github.com/polarfire-soc/platform.git
+	url = https://github.com/AlexCharlton/platform

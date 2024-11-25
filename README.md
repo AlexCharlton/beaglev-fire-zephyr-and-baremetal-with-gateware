@@ -1,6 +1,6 @@
-# BeagleV Fire Zephyr + Gateware + HSS
+# BeagleV Fire Zephyr/Baremetal (C and Rust) + Gateware + HSS
 
-Template for developing Zephyr applications on the BeagleV Fire. Only tested on Windows, but should work on anything supported by the Microchip tools (Libero/SoftConsole).
+Template for developing Zephyr or baremetal applications on the BeagleV Fire using C or Rust. Only tested on Windows, but should work on anything supported by the Microchip tools (Libero/SoftConsole).
 
 When developing on Windows, it's assumed you're using MSYS2. Zephyr should be installed in WSL, since it apparently does not work particularly well on Windows. The build script will automatically run itself in WSL.
 
@@ -28,6 +28,15 @@ On *nix:
 
 Configure the environment variables in `scripts/script-config.sh`
 
+To use baremetal Rust, install a newer version of the RISC-V toolchain:
+```sh
+$ git clone https://github.com/riscv-collab/riscv-gnu-toolchain
+$ cd riscv-gnu-toolchain
+$ ./configure --prefix=/opt/riscv --with-arch=rv64gc --with-abi=lp64d
+$ make
+```
+
+And add `/opt/riscv/bin` to your PATH
 
 ## Usage
 ### Programming a Zephyr application
@@ -47,6 +56,20 @@ CTRL-Y enters FLASH mode, then reset the board to program the image.
 flasher acts as a serial terminal, so it's generally useful to keep open to see the output/logs of the application. CTRL-T to exit.
 
 flasher works by interrupting the HSS bootloader to enter its console, then executes the `mmc` and `usbdmsc` commands to mount the eMMC as a USB drive. It detects newly mounted drives, and writes the given image to it, before unmounting and rebooting the device.
+
+### Programming a baremetal application
+The C example uses the RISC-V toolchain from SoftConsole and the Microchip [platform](https://github.com/polarfire-soc/platform).
+```sh
+$ ./scripts/build-baremetal.sh
+$ flasher [your-serial-port] baremetal/mpfs-timer-example/build/application.img
+```
+
+The Rust example requires a more recent version of the RISC-V toolchain, and a patched version of the [platform](https://github.com/AlexCharlton/platform). I couldn't get a working version of the toolchain on Windows, so the build script assumes you have a WSL [installation](https://github.com/riscv-collab/riscv-gnu-toolchain) available (see above for installation instructions).
+
+```sh
+$ ./scripts/build-baremetal-rust.sh
+$ flasher [your-serial-port] baremetal-build/application.img
+```
 
 ### GDB debugging
 With a JTAG debugger (FlashPro) connected, run:

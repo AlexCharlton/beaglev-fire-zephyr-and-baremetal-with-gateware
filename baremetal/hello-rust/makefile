@@ -50,9 +50,9 @@ all:
 	$(MAKE) --no-print-directory main-build
 
 # Main-build Target
-main-build: $(ELF_TARGET) secondary-outputs $(IMG_TARGET)
+main-build: rust_build $(ELF_TARGET) secondary-outputs $(IMG_TARGET)
 
-$(RUST_TARGET): ${OBJS}
+rust_build:
 	cargo build
 
 # Tool invocations

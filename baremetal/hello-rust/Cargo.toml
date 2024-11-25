@@ -15,4 +15,5 @@ panic = "abort"
 
 [dependencies]
 riscv = "0.12"
+itoa = "1.0"
 

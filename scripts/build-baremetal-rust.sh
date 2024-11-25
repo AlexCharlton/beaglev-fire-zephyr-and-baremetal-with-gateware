@@ -19,11 +19,11 @@ set +e # Ignore if the source fails
 source ~/.profile # Useful when being called by WSL
 set -e # Exit on error
 
-mkdir -p ~/src
+mkdir -p ~/src/baremetal/
 
-rsync -a --exclude 'build' --exclude 'target' $PROJECT_DIR/baremetal/ $HOME/src/
+rsync -a --delete --exclude 'build' --exclude 'target' $PROJECT_DIR/baremetal/ $HOME/src/baremetal/
 
-cd $HOME/src/hello-rust
+cd $HOME/src/baremetal/hello-rust
 make
 rsync -a --delete --exclude 'mpfs-platform' $HOME/src/hello-rust/build/ $PROJECT_DIR/baremetal-build/
 echo "Build complete"

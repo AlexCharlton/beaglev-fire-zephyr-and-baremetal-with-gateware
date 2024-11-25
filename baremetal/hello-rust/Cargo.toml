@@ -12,3 +12,7 @@ panic = "abort"
 
 [profile.release]
 panic = "abort"
+
+[dependencies]
+riscv = "0.12"
+

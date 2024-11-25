@@ -43,24 +43,23 @@ $(BUILD_DIR)/$(BUILD_ARTIFACT_NAME).siz \
 
 IMG_TARGET := $(BUILD_DIR)/application.img
 
-RUST_TARGET := target/riscv64gc-unknown-none-elf/release/libapplication.a
-OBJS += $(RUST_TARGET)
+RUST_TARGET := target/riscv64gc-unknown-none-elf/debug/libapplication.a
 
 # All Target
 all:
 	$(MAKE) --no-print-directory main-build
 
 # Main-build Target
-main-build: rust-build $(ELF_TARGET) secondary-outputs $(IMG_TARGET)
+main-build: $(ELF_TARGET) secondary-outputs $(IMG_TARGET)
 
-rust-build:
-	cargo build --release
+$(RUST_TARGET): ${OBJS}
+	cargo build
 
 # Tool invocations
-$(ELF_TARGET): $(OBJS) makefile
+$(ELF_TARGET): $(OBJS) $(RUST_TARGET) makefile
 	@echo 'Building target: $@'
 	@echo 'Invoking: GNU RISC-V Cross C Linker'
-	riscv64-unknown-elf-gcc -march=rv64gc -mabi=lp64d -mcmodel=medany -msmall-data-limit=8 -mstrict-align -mno-save-restore -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections  -g -T "${PLATFORM_DIR}/platform/platform_config_reference/linker/mpfs-ddr-loaded-by-boot-loader.ld" -nostartfiles -Xlinker --gc-sections -Wl,-Map,"${BUILD_DIR}/$(BUILD_ARTIFACT_NAME).map" --specs=nano.specs --specs=nosys.specs -o "$(ELF_TARGET)" $(OBJS)  $(LIBS)
+	riscv64-unknown-elf-gcc -march=rv64gc -mabi=lp64d -mcmodel=medany -msmall-data-limit=8 -mstrict-align -mno-save-restore -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections  -g -T "${PLATFORM_DIR}/platform/platform_config_reference/linker/mpfs-ddr-loaded-by-boot-loader.ld" -nostartfiles -Xlinker --gc-sections -Wl,-Map,"${BUILD_DIR}/$(BUILD_ARTIFACT_NAME).map" --specs=nano.specs --specs=nosys.specs -o "$(ELF_TARGET)" $(OBJS) $(RUST_TARGET) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 

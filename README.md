@@ -28,16 +28,6 @@ On *nix:
 
 Configure the environment variables in `scripts/script-config.sh`
 
-To use baremetal Rust, install a newer version of the RISC-V toolchain:
-```sh
-$ git clone https://github.com/riscv-collab/riscv-gnu-toolchain
-$ cd riscv-gnu-toolchain
-$ ./configure --prefix=/opt/riscv --with-arch=rv64gc --with-abi=lp64d
-$ make
-```
-
-And add `/opt/riscv/bin` to your PATH
-
 ## Usage
 ### Programming a Zephyr application
 Building Zephyr application:
@@ -64,7 +54,7 @@ $ ./scripts/build-baremetal.sh
 $ flasher [your-serial-port] baremetal/mpfs-timer-example/build/application.img
 ```
 
-The Rust example requires a more recent version of the RISC-V toolchain, and a patched version of the [platform](https://github.com/AlexCharlton/platform). I couldn't get a working version of the toolchain on Windows, so the build script assumes you have a WSL [installation](https://github.com/riscv-collab/riscv-gnu-toolchain) available (see above for installation instructions).
+The Rust example uses a patched version of the [platform](https://github.com/AlexCharlton/platform).
 
 ```sh
 $ ./scripts/build-baremetal-rust.sh

@@ -4,8 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "application"
-crate-type = ["staticlib"]
+crate-type = ["lib", "staticlib"]
 
 [profile.dev]
 panic = "abort"
@@ -17,3 +16,6 @@ panic = "abort"
 riscv = "0.12"
 itoa = "1.0"
 
+[build-dependencies]
+cc = "1.0"
+walkdir = "2.4"

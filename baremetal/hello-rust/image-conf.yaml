@@ -9,7 +9,7 @@ hart-entry-points:
 
 # Define the payloads (ELF binaries or raw blobs)
 payloads:
-   build/hello-rust.elf:
+  build/hello-rust.elf:
     exec-addr: '0x80000000'
     owner-hart: u54_1
     priv-mode: prv_m  # Start in Machine mode

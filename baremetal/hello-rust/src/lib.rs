@@ -23,7 +23,7 @@ pub extern "C" fn u54_1() {
 
         // Main message
         uart_puts_rs(b"\r\n\0".as_ptr());
-        uart_puts_rs(b"Hello World from rust from hart \0".as_ptr());
+        uart_puts_rs(b"Hello World from Rust from hart \0".as_ptr());
 
         // Create a static buffer for the number
         static mut NUM_BUF: [u8; 32] = [0; 32]; // Initialize with zeros

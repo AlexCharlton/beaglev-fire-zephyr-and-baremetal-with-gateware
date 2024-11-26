@@ -43,17 +43,20 @@ $(BUILD_DIR)/$(BUILD_ARTIFACT_NAME).siz \
 
 IMG_TARGET := $(BUILD_DIR)/application.img
 
-RUST_TARGET := target/riscv64gc-unknown-none-elf/debug/libapplication.a
+RUST_TARGET := target/riscv64gc-unknown-none-elf/debug/libhello_rust.a
 
 # All Target
 all:
 	$(MAKE) --no-print-directory main-build
 
 # Main-build Target
-main-build: rust_build $(ELF_TARGET) secondary-outputs $(IMG_TARGET)
+main-build: rust_build $(ELF_TARGET) secondary-outputs # $(IMG_TARGET)
 
 rust_build:
 	cargo build
+
+$(RUST_TARGET):
+	$(MAKE) --no-print-directory rust_build
 
 # Tool invocations
 $(ELF_TARGET): $(OBJS) $(RUST_TARGET) makefile
@@ -81,8 +84,8 @@ $(BUILD_DIR)/$(BUILD_ARTIFACT_NAME).siz: $(BUILD_DIR)/$(BUILD_ARTIFACT_NAME).elf
 	@echo 'Finished building: $@'
 	@echo ' '
 
-$(IMG_TARGET): $(ELF_TARGET)
-	hss-payload-generator -c image-conf.yaml $(IMG_TARGET)
+# $(IMG_TARGET): $(ELF_TARGET)
+# 	hss-payload-generator -c image-conf.yaml $(IMG_TARGET)
 
 # Other Targets
 clean:

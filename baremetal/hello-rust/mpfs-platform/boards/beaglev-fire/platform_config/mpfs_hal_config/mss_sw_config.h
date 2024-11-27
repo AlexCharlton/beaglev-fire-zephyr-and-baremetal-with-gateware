@@ -13,25 +13,25 @@
  * Version based on requirements of MPFS MSS
  *
  */
- /*========================================================================*//**
-  @mainpage Sample file detailing how mss_sw_config.h should be constructed for
-    the MPFS MSS
+/*========================================================================*//**
+ @mainpage Sample file detailing how mss_sw_config.h should be constructed for
+   the MPFS MSS
 
-    @section intro_sec Introduction
-    The mss_sw_config.h has the default software configuration settings for the
-    MPFS HAL and will be located at
-    <Project-Name>/src/platform/platform_config_reference folder of the bare
-    metal SoftConsole project. The platform_config_reference is provided as a
-    default reference configuration.
-    When you want to configure the MPFS HAL with required configuration for
-    your project, the mss_sw_config.h must be edited and be placed in the
-    following project directory:
-    <Project-Name>/src/boards/<your-board>/platform_config/mpfs_hal_config/
+   @section intro_sec Introduction
+   The mss_sw_config.h has the default software configuration settings for the
+   MPFS HAL and will be located at
+   <Project-Name>/src/platform/platform_config_reference folder of the bare
+   metal SoftConsole project. The platform_config_reference is provided as a
+   default reference configuration.
+   When you want to configure the MPFS HAL with required configuration for
+   your project, the mss_sw_config.h must be edited and be placed in the
+   following project directory:
+   <Project-Name>/src/boards/<your-board>/platform_config/mpfs_hal_config/
 
-    @section
+   @section
 
-*//*==========================================================================*/
-
+*/
+/*==========================================================================*/
 
 #ifndef MSS_SW_CONFIG_H_
 #define MSS_SW_CONFIG_H_
@@ -61,11 +61,11 @@
  * your application to the target memory and kicks-off U54_1 to run it.
  */
 #ifndef MPFS_HAL_FIRST_HART
-#define MPFS_HAL_FIRST_HART  1
+#define MPFS_HAL_FIRST_HART 1
 #endif
 
 #ifndef MPFS_HAL_LAST_HART
-#define MPFS_HAL_LAST_HART   1
+#define MPFS_HAL_LAST_HART 1
 #endif
 
 /*
@@ -99,7 +99,6 @@
 #define MPFS_HAL_HW_CONFIG
 #endif
 
-
 /*
  * If you are using common memory for sharing across harts,
  * uncomment #define MPFS_HAL_SHARED_MEM_ENABLED
@@ -110,15 +109,14 @@
 
 #define MPFS_HAL_SHARED_MEM_ENABLED
 
-
 /* define the required tick rate in Milliseconds */
 /* if this program is running on one hart only, only that particular hart value
  * will be used */
-#define HART0_TICK_RATE_MS  5UL
-#define HART1_TICK_RATE_MS  5UL
-#define HART2_TICK_RATE_MS  5UL
-#define HART3_TICK_RATE_MS  5UL
-#define HART4_TICK_RATE_MS  5UL
+#define HART0_TICK_RATE_MS 5UL
+#define HART1_TICK_RATE_MS 5UL
+#define HART2_TICK_RATE_MS 5UL
+#define HART3_TICK_RATE_MS 5UL
+#define HART4_TICK_RATE_MS 5UL
 
 /*
  * Define the size of the Hart Local Storage (HLS).
@@ -128,7 +126,7 @@
  * The HLS will take memory from top of each stack allocated at boot time.
  *
  */
-#define HLS_DEBUG_AREA_SIZE     64
+#define HLS_DEBUG_AREA_SIZE 64
 
 /*
  * Bus Error Unit (BEU) configurations
@@ -139,9 +137,9 @@
  * BEU_LOCAL_INT => Configures which accrued events should generate a
  *                 local interrupt to the hart on which the event accrued.
  */
-#define BEU_ENABLE                  0x0ULL
-#define BEU_PLIC_INT                0x0ULL
-#define BEU_LOCAL_INT               0x0ULL
+#define BEU_ENABLE 0x0ULL
+#define BEU_PLIC_INT 0x0ULL
+#define BEU_LOCAL_INT 0x0ULL
 
 /*
  * Clear memory on startup
@@ -150,7 +148,7 @@
  * Note: If you are the zero stage bootloader, set this to one.
  */
 #ifndef MPFS_HAL_CLEAR_MEMORY
-#define MPFS_HAL_CLEAR_MEMORY  1
+#define MPFS_HAL_CLEAR_MEMORY 1
 #endif
 
 /*
@@ -176,12 +174,11 @@
  * If you need to edit this function, make another copy of the function in your
  * application without the weak linking attribute. This copy will then get linked.
  * */
-//#define DEBUG_DDR_INIT
-//#define DEBUG_DDR_RD_RW_FAIL
-//#define DEBUG_DDR_RD_RW_PASS
-//#define DEBUG_DDR_CFG_DDR_SGMII_PHY
-//#define DEBUG_DDR_DDRCFG
-
+// #define DEBUG_DDR_INIT
+// #define DEBUG_DDR_RD_RW_FAIL
+// #define DEBUG_DDR_RD_RW_PASS
+// #define DEBUG_DDR_CFG_DDR_SGMII_PHY
+// #define DEBUG_DDR_DDRCFG
 
 /*
  * The hardware configuration settings imported from Libero project get generated
@@ -194,4 +191,3 @@
  */
 
 #endif /* USER_CONFIG_MSS_USER_CONFIG_H_ */
-

@@ -6,8 +6,11 @@ use alloc::format;
 use alloc::vec::Vec;
 use core::panic::PanicInfo;
 use core::ptr::addr_of_mut;
-use critical_section::RawRestoreState;
 use embedded_alloc::LlffHeap as Heap;
+
+mod mpfs;
+use mpfs::*;
+mod criticalsection;
 
 #[global_allocator]
 static HEAP: Heap = Heap::empty();
@@ -15,19 +18,6 @@ static HEAP: Heap = Heap::empty();
 #[panic_handler]
 fn panic(_panic: &PanicInfo<'_>) -> ! {
     loop {}
-}
-
-struct MPFSCriticalSection;
-critical_section::set_impl!(MPFSCriticalSection);
-
-unsafe impl critical_section::Impl for MPFSCriticalSection {
-    unsafe fn acquire() -> RawRestoreState {
-        // TODO
-    }
-
-    unsafe fn release(_token: RawRestoreState) {
-        // TODO
-    }
 }
 
 #[no_mangle]
@@ -47,11 +37,8 @@ pub extern "C" fn u54_1() {
             HEAP.init(addr_of_mut!(HEAP_MEM) as usize, HEAP_SIZE)
         }
 
-        let hart_id: u32;
-        core::arch::asm!("csrr {}, mhartid", out(reg) hart_id);
-
         uart_puts_rs(b"\n\0".as_ptr());
-        let msg = format!("Hello World from Rust from hart {}!\n\0", hart_id);
+        let msg = format!("Hello World from Rust from hart {}!\n\0", hart_id());
         uart_puts_rs(msg.as_ptr());
 
         let mut xs = Vec::new();

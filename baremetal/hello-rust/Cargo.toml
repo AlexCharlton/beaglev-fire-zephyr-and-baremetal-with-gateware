@@ -2,6 +2,7 @@
 name = "hello-rust"
 version = "0.1.0"
 edition = "2021"
+build = "build.rs"
 
 [[bin]]
 name = "hello-rust"
@@ -26,5 +27,6 @@ riscv = "0.12"
 itoa = "1.0"
 
 [build-dependencies]
+bindgen = "0.70"
 cc = "1.0"
 walkdir = "2.4"

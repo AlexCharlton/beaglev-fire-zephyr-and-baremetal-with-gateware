@@ -8,6 +8,9 @@ use core::panic::PanicInfo;
 use core::ptr::addr_of_mut;
 use embedded_alloc::LlffHeap as Heap;
 
+pub mod sys;
+pub use sys::*;
+
 mod mpfs;
 use mpfs::*;
 mod criticalsection;
@@ -28,7 +31,11 @@ pub extern "C" fn u54_1() {
         PLIC_init_rs();
         enable_irq_rs();
         mss_config_clk_rst(0, 1, 0);
-        uart_init_rs();
+        sys::MSS_UART_init(
+            addr_of_mut!(sys::g_mss_uart0_lo),
+            sys::MSS_UART_115200_BAUD,
+            sys::MSS_UART_DATA_8_BITS | sys::MSS_UART_NO_PARITY | sys::MSS_UART_ONE_STOP_BIT,
+        );
 
         {
             use core::mem::MaybeUninit;
@@ -55,15 +62,5 @@ extern "C" {
     fn PLIC_init_rs();
     fn enable_irq_rs();
     fn mss_config_clk_rst(periph: u32, hart: u8, enable: u32);
-    fn uart_init_rs();
     fn uart_puts_rs(s: *const u8);
-}
-
-#[inline]
-unsafe fn _set_csr_rs(reg: u32, bit: u32) {
-    match reg {
-        0x304 => core::arch::asm!("csrs mie, {}", in(reg) bit),
-        // Add other CSR cases as needed
-        x => panic!("Unsupported CSR register: {}", x),
-    }
 }

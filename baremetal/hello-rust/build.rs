@@ -106,4 +106,22 @@ fn main() {
     println!("cargo:rerun-if-changed=mpfs-platform");
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=linker.ld");
+
+    // Generate bindings
+    let bindings = bindgen::Builder::default()
+        .header("mpfs-platform/wrapper.h")
+        .use_core()
+        .clang_arg("-xc")
+        .clang_args(&["-Impfs-platform"])
+        .generate()
+        .expect("Unable to generate bindings");
+
+    // Write the bindings to an output file
+    let out_path = PathBuf::from(std::env::var("OUT_DIR").unwrap());
+    bindings
+        .write_to_file(out_path.join("bindings.rs"))
+        .expect("Couldn't write bindings!");
+
+    // Add rerun-if-changed for the wrapper header
+    println!("cargo:rerun-if-changed=wrapper.h");
 }

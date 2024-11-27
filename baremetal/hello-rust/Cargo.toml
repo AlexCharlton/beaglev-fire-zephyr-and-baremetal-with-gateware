@@ -3,8 +3,15 @@ name = "hello-rust"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "hello-rust"
+test = false
+bench = false
+
 [lib]
 crate-type = ["lib", "staticlib"]
+test = false
+bench = false
 
 [profile.dev]
 panic = "abort"
@@ -13,6 +20,8 @@ panic = "abort"
 panic = "abort"
 
 [dependencies]
+critical-section = { version = "1.2", features = ["restore-state-u32"] }
+embedded-alloc = "0.6"
 riscv = "0.12"
 itoa = "1.0"
 

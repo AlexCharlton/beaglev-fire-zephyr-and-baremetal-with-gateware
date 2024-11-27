@@ -54,6 +54,13 @@ fn main() {
         .std("gnu11")
         .flag("-Wstrict-prototypes")
         .flag("-Wbad-function-cast")
+        .flag("-Wno-sign-compare")
+        .flag("-Wno-pointer-compare")
+        .flag("-Wno-int-to-pointer-cast")
+        .flag("-Wno-pointer-to-int-cast")
+        .flag("-Wno-unused-parameter")
+        .flag("-Wno-unused-variable")
+        .flag("-Wno-unused-but-set-variable")
         .files(c_sources);
 
     // Compile assembly sources
@@ -70,8 +77,7 @@ fn main() {
 
     // Linker
     let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
-    let linker_script =
-        "mpfs-platform/platform/platform_config_reference/linker/mpfs-ddr-loaded-by-boot-loader.ld";
+    let linker_script = "linker.ld";
     let linker_script_dst = out_dir.join("linker.ld");
     std::fs::copy(linker_script, &linker_script_dst).unwrap();
 
@@ -99,4 +105,5 @@ fn main() {
     // Tell cargo to rerun if any files in mpfs-platform change
     println!("cargo:rerun-if-changed=mpfs-platform");
     println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=linker.ld");
 }

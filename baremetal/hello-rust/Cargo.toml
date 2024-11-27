@@ -20,7 +20,7 @@ panic = "abort"
 panic = "abort"
 
 [dependencies]
-critical-section = { version = "1.2", features = ["restore-state-u32"] }
+critical-section = { version = "1.2", features = ["restore-state-bool"] }
 embedded-alloc = "0.6"
 riscv = "0.12"
 itoa = "1.0"

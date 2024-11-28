@@ -18,9 +18,30 @@ critical_section::set_impl!(critical_section_impl::MPFSCriticalSection);
 #[global_allocator]
 static HEAP: Heap = Heap::empty();
 
+unsafe fn init_heap() {
+    use core::mem::MaybeUninit;
+    const HEAP_SIZE: usize = 1024;
+    static mut HEAP_MEM: [MaybeUninit<u8>; HEAP_SIZE] = [MaybeUninit::uninit(); HEAP_SIZE];
+    HEAP.init(addr_of_mut!(HEAP_MEM) as usize, HEAP_SIZE)
+}
+
 #[panic_handler]
-fn panic(_panic: &PanicInfo<'_>) -> ! {
-    loop {}
+fn panic(panic: &PanicInfo<'_>) -> ! {
+    // Print panic message if available
+    if let Some(location) = panic.location() {
+        let msg = format!(
+            "\nPANIC at {}:{} - {}\n\0",
+            location.file(),
+            location.line(),
+            panic.message()
+        );
+        uart_puts(msg.as_ptr());
+    }
+
+    loop {
+        // Optional: Could add some hardware-specific error indication here
+        // like blinking an LED or triggering a watchdog reset
+    }
 }
 
 #[no_mangle]
@@ -43,12 +64,7 @@ pub extern "C" fn u54_1() {
             sys::MSS_UART_DATA_8_BITS | sys::MSS_UART_NO_PARITY | sys::MSS_UART_ONE_STOP_BIT,
         );
 
-        {
-            use core::mem::MaybeUninit;
-            const HEAP_SIZE: usize = 1024;
-            static mut HEAP_MEM: [MaybeUninit<u8>; HEAP_SIZE] = [MaybeUninit::uninit(); HEAP_SIZE];
-            HEAP.init(addr_of_mut!(HEAP_MEM) as usize, HEAP_SIZE)
-        }
+        init_heap();
 
         uart_puts(b"\n\0".as_ptr());
         let msg = format!("Hello World from Rust from hart {}!\n\0", hart_id());
@@ -59,6 +75,8 @@ pub extern "C" fn u54_1() {
 
         let msg = format!("Got value {} from the heap!\n\0", xs.pop().unwrap());
         uart_puts(msg.as_ptr());
+
+        panic!("This is a test panic!");
     }
 }
 

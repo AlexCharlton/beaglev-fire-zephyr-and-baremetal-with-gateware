@@ -11,7 +11,9 @@ fn main() {
             let is_c_file = path.extension().map_or(false, |ext| ext == "c");
             let path_str = path.to_string_lossy().replace('\\', "/");
             let in_mss = path_str.contains("mpfs-platform/platform/drivers/mss");
-            let in_allowed_mss = path_str.contains("mss_uart") || path_str.contains("mss_gpio");
+            let in_allowed_mss = path_str.contains("mss_uart")
+                || path_str.contains("mss_gpio")
+                || path_str.contains("mss_timer");
 
             is_c_file && (!in_mss || in_allowed_mss)
         })

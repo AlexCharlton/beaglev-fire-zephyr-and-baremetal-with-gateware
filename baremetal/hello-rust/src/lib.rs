@@ -11,7 +11,8 @@ use embedded_alloc::LlffHeap as Heap;
 pub mod sys;
 use sys::hart_id;
 
-mod critical_section_impl;
+pub mod critical_section_impl;
+pub mod time_driver;
 
 critical_section::set_impl!(critical_section_impl::MPFSCriticalSection);
 
@@ -39,8 +40,7 @@ fn panic(panic: &PanicInfo<'_>) -> ! {
     }
 
     loop {
-        // Optional: Could add some hardware-specific error indication here
-        // like blinking an LED or triggering a watchdog reset
+        // TODO: Do something useful? Reset?
     }
 }
 
@@ -53,6 +53,7 @@ pub extern "C" fn u54_1() {
 
         sys::PLIC_init();
         sys::__enable_irq();
+        time_driver::init();
         sys::mss_config_clk_rst(
             sys::mss_peripherals__MSS_PERIPH_MMUART0,
             sys::MPFS_HAL_FIRST_HART as u8,
@@ -63,6 +64,7 @@ pub extern "C" fn u54_1() {
             sys::MSS_UART_115200_BAUD,
             sys::MSS_UART_DATA_8_BITS | sys::MSS_UART_NO_PARITY | sys::MSS_UART_ONE_STOP_BIT,
         );
+        let now = embassy_time::Instant::now();
 
         init_heap();
 
@@ -76,7 +78,12 @@ pub extern "C" fn u54_1() {
         let msg = format!("Got value {} from the heap!\n\0", xs.pop().unwrap());
         uart_puts(msg.as_ptr());
 
-        panic!("This is a test panic!");
+        let elapsed = embassy_time::Instant::now() - now;
+
+        panic!(
+            "This is a test panic, occurred after {} us",
+            elapsed.as_micros()
+        );
     }
 }
 

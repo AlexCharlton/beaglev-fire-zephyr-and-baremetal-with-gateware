@@ -22,6 +22,9 @@ panic = "abort"
 
 [dependencies]
 critical-section = { version = "1.2", features = ["restore-state-bool"] }
+embassy-time = "0.3"
+embassy-time-driver = { version = "0.1", features = ["tick-hz-600_000_000"] }
+embassy-sync = "0.6.1"
 embedded-alloc = "0.6"
 riscv = "0.12"
 itoa = "1.0"

@@ -7,6 +7,9 @@ pub use clint::*;
 mod encoding;
 pub use encoding::*;
 
+mod timer;
+pub use timer::*;
+
 mod uart;
 pub use uart::*;
 

@@ -20,7 +20,7 @@ pub unsafe fn raise_soft_interrupt(hart_id: usize) {
 ///
 /// This function reads a CSR register and modifies hardware state.
 pub unsafe fn clear_soft_interrupt() {
-    let hart_id = hart_id() as usize;
+    let hart_id = hart_id();
     (*CLINT).MSIP[hart_id] = 0x0;
 
     // Read back to ensure write completion

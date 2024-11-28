@@ -1,18 +1,18 @@
-use core::sync::atomic::{AtomicU32, Ordering};
+use core::sync::atomic::{AtomicUsize, Ordering};
 use critical_section::RawRestoreState;
 
 use super::sys::{hart_id, MIP_MSIP};
 
 pub struct MPFSCriticalSection;
 
-const LOCK_UNOWNED: u32 = 0;
+const LOCK_UNOWNED: usize = 0;
 
 // Stores which hart (core) owns the lock: 0 = unowned, 1-4 = hart ID
-static LOCK_OWNER: AtomicU32 = AtomicU32::new(LOCK_UNOWNED);
+static LOCK_OWNER: AtomicUsize = AtomicUsize::new(LOCK_UNOWNED);
 
 unsafe impl critical_section::Impl for MPFSCriticalSection {
     unsafe fn acquire() -> RawRestoreState {
-        let hart_id: u32 = hart_id();
+        let hart_id: usize = hart_id();
 
         // Check if we already own the lock
         if LOCK_OWNER.load(Ordering::Acquire) == hart_id {

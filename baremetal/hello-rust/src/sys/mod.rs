@@ -11,8 +11,8 @@ mod uart;
 pub use uart::*;
 
 #[inline]
-pub fn hart_id() -> u32 {
-    let mut hart_id: u32;
+pub fn hart_id() -> usize {
+    let mut hart_id: usize;
     unsafe {
         core::arch::asm!("csrr {}, mhartid", out(reg) hart_id);
     }

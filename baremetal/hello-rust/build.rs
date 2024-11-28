@@ -112,7 +112,12 @@ fn main() {
         .header("mpfs-platform/wrapper.h")
         .use_core()
         .clang_arg("-xc")
-        .clang_args(&["-Impfs-platform"])
+        .clang_args(&[
+            "-Impfs-platform",
+            "-Impfs-platform/platform",
+            "-Impfs-platform/boards/beaglev-fire/platform_config",
+            "-Impfs-platform/boards/beaglev-fire",
+        ])
         .generate()
         .expect("Unable to generate bindings");
 

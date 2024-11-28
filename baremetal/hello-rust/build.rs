@@ -42,9 +42,9 @@ fn main() {
         .define("NDEBUG", None)
         .includes(&[
             "mpfs-platform/application",
-            "mpfs-platform/boards/beaglev-fire/platform_config",
             "mpfs-platform/platform",
             "mpfs-platform/boards/beaglev-fire",
+            "mpfs-platform/boards/beaglev-fire/platform_config",
         ]);
 
     // Compile C sources
@@ -84,28 +84,6 @@ fn main() {
     println!("cargo:rustc-link-search={}", out_dir.display());
     println!("cargo:rustc-link-arg=-Tlinker.ld");
     println!("cargo:rustc-link-arg=--gc-sections");
-    // These are the flags that the makefile uses, but that the rust linker doesn't recognize
-    // println!("cargo:rustc-link-arg=-march=rv64gc");
-    // println!("cargo:rustc-link-arg=-mabi=lp64d");
-    // println!("cargo:rustc-link-arg=-mcmodel=medany");
-    // println!("cargo:rustc-link-arg=-msmall-data-limit=8");
-    // println!("cargo:rustc-link-arg=-mstrict-align");
-    // println!("cargo:rustc-link-arg=-mno-save-restore");
-    // println!("cargo:rustc-link-arg=-Os");
-    // println!("cargo:rustc-link-arg=-g");
-    // println!("cargo:rustc-link-arg=-fmessage-length=0");
-    // println!("cargo:rustc-link-arg=-ffunction-sections");
-    // println!("cargo:rustc-link-arg=-fdata-sections");
-    // println!("cargo:rustc-link-arg=-fsigned-char");
-    // println!("cargo:rustc-link-arg=-Xlinker");
-    // println!("cargo:rustc-link-arg=--specs=nano.specs");
-    // println!("cargo:rustc-link-arg=--specs=nosys.specs");
-    // println!("cargo:rustc-link-arg=-nostartfiles");
-
-    // Tell cargo to rerun if any files in mpfs-platform change
-    println!("cargo:rerun-if-changed=mpfs-platform");
-    println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-changed=linker.ld");
 
     // Generate bindings
     let bindings = bindgen::Builder::default()
@@ -115,8 +93,8 @@ fn main() {
         .clang_args(&[
             "-Impfs-platform",
             "-Impfs-platform/platform",
-            "-Impfs-platform/boards/beaglev-fire/platform_config",
             "-Impfs-platform/boards/beaglev-fire",
+            "-Impfs-platform/boards/beaglev-fire/platform_config",
         ])
         .generate()
         .expect("Unable to generate bindings");
@@ -127,6 +105,7 @@ fn main() {
         .write_to_file(out_path.join("bindings.rs"))
         .expect("Couldn't write bindings!");
 
-    // Add rerun-if-changed for the wrapper header
-    println!("cargo:rerun-if-changed=wrapper.h");
+    println!("cargo:rerun-if-changed=mpfs-platform");
+    println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=linker.ld");
 }

@@ -20,10 +20,10 @@ critical_section::set_impl!(critical_section_impl::MPFSCriticalSection);
 static HEAP: Heap = Heap::empty();
 
 unsafe fn init_heap() {
-    use core::mem::MaybeUninit;
-    const HEAP_SIZE: usize = 1024;
-    static mut HEAP_MEM: [MaybeUninit<u8>; HEAP_SIZE] = [MaybeUninit::uninit(); HEAP_SIZE];
-    HEAP.init(addr_of_mut!(HEAP_MEM) as usize, HEAP_SIZE)
+    HEAP.init(
+        sys::last_linked_address(),
+        sys::last_address() - sys::last_linked_address(),
+    )
 }
 
 #[panic_handler]
@@ -78,6 +78,8 @@ pub extern "C" fn u54_1() {
         let msg = format!("Got value {} from the heap!\n\0", xs.pop().unwrap());
         uart_puts(msg.as_ptr());
 
+        check_heap();
+
         let elapsed = embassy_time::Instant::now() - now;
 
         panic!(
@@ -91,4 +93,24 @@ fn uart_puts(s: *const u8) {
     unsafe {
         sys::MSS_UART_polled_tx_string(addr_of_mut!(sys::g_mss_uart0_lo), s);
     }
+}
+
+fn check_heap() {
+    uart_puts(b"\nChecking heap integrity...\n\0".as_ptr());
+    let heap_start = sys::last_linked_address();
+    let heap_end = sys::last_address();
+
+    let mut ptr = heap_start as *mut usize;
+    while ptr < heap_end as *mut usize {
+        unsafe {
+            core::ptr::write_volatile(ptr, ptr as usize);
+            let val = core::ptr::read_volatile(ptr);
+            if val != ptr as usize {
+                panic!("Heap corruption detected at {:#x}", ptr as usize);
+            }
+        }
+        ptr = unsafe { ptr.add(0x1000) };
+        uart_puts(b".\0".as_ptr());
+    }
+    uart_puts(format!("\nFinished! Checked {} bytes\n\0", heap_end - heap_start).as_ptr());
 }

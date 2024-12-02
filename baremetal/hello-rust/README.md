@@ -30,3 +30,12 @@ Get cargo to check using the correct target:
 ```sh
 $ cargo check --target riscv64gc-unknown-none-elf
 ```
+
+## TODO
+- Get a blinky multicore example working
+  - https://github.com/embassy-rs/embassy/blob/main/examples/rp/src/bin/multicore.rs
+- DMA with UART?
+  - This is what the rp hal does: https://github.com/embassy-rs/embassy/blob/04c1d69de9d5f0d9285015daba631aeef123b00e/embassy-rp/src/uart/mod.rs
+- embedded-hal
+- embedded-io
+- embedded-hal-async

@@ -72,7 +72,8 @@ MEMORY
     ddr_non_cached_38bit (rwx) : ORIGIN  = 0x1400000000, LENGTH = 0k
     ddr_wcb_38bit (rwx) : ORIGIN  = 0x1800000000, LENGTH  = 0k
 }
-HEAP_SIZE           = 32M;
+/* For an application loaded with HSS, the heap appears to be initialized which makes booting take a time proportionate to the heap size. We also appear to be limited to a ~1G heap size for some reason. Since we want to be able take advantage of all remaining memory, we'll set up the heap in the application using addresses greater than those referenced here. */
+HEAP_SIZE           = 0k;
 
 /*
  * There is common area for shared variables, accessed from a pointer in a harts HLS
@@ -209,7 +210,7 @@ SECTIONS
     /* End of uninitialized data segment */
         _end = .;
 
-        .heap (NOLOAD) : ALIGN(0x10) /* TODO: Validate */
+        .heap (NOLOAD) : ALIGN(0x10)
         {
         __heap_start = .;
         . += HEAP_SIZE;
@@ -271,4 +272,3 @@ SECTIONS
         PROVIDE(__app_hart_common_end = .);
     } > ddr_cached_38bit
 }
-

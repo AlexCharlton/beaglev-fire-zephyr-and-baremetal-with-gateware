@@ -6,6 +6,8 @@ use embassy_time_driver::{AlarmHandle, Driver};
 
 use super::sys;
 
+// Modelled off https://github.com/embassy-rs/embassy/blob/main/embassy-rp/src/time_driver.rs
+
 struct AlarmState {
     timestamp: Cell<u64>,
     callback: Cell<Option<(fn(*mut ()), *mut ())>>,

@@ -7,6 +7,7 @@ use embassy_time_driver::{AlarmHandle, Driver};
 use super::sys;
 
 // Modelled off https://github.com/embassy-rs/embassy/blob/main/embassy-rp/src/time_driver.rs
+// and https://github.com/polarfire-soc/polarfire-soc-bare-metal-examples/blob/main/driver-examples/mss/mss-timer/mpfs-timer-example/src/application/hart1/u54_1.c
 
 struct AlarmState {
     timestamp: Cell<u64>,
@@ -116,13 +117,20 @@ pub unsafe fn init() {
     });
 
     unsafe {
+        sys::mss_config_clk_rst(
+            sys::mss_peripherals__MSS_PERIPH_TIMER,
+            sys::MPFS_HAL_FIRST_HART as u8,
+            sys::PERIPH_RESET_STATE__PERIPHERAL_ON,
+        );
+        sys::PLIC_SetPriority(sys::PLIC_IRQn_Type_PLIC_TIMER1_INT_OFFSET, 2);
+        sys::PLIC_SetPriority(sys::PLIC_IRQn_Type_PLIC_TIMER2_INT_OFFSET, 2);
         sys::reset_mtime();
-        sys::MSS_TIM64_init(sys::TIMER_LO, sys::__mss_timer_mode_MSS_TIMER_PERIODIC_MODE);
+        sys::MSS_TIM64_init(sys::TIMER_LO, sys::__mss_timer_mode_MSS_TIMER_ONE_SHOT_MODE);
     }
 }
 
 #[no_mangle]
-pub extern "C" fn timer1_plic_IRQHandler() -> u8 {
+pub extern "C" fn PLIC_timer1_IRQHandler() -> u8 {
     DRIVER.trigger_alarm();
 
     return sys::EXT_IRQ_KEEP_ENABLED as u8;

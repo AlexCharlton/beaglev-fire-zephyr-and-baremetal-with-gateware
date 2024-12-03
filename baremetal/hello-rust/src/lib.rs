@@ -8,6 +8,8 @@ use alloc::vec::Vec;
 use core::panic::PanicInfo;
 use core::ptr::addr_of_mut;
 use embassy_executor::Executor;
+use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
+use embassy_sync::blocking_mutex::Mutex;
 use embassy_time::{Instant, Timer};
 use embedded_alloc::LlffHeap as Heap;
 use static_cell::StaticCell;
@@ -51,7 +53,7 @@ fn panic(panic: &PanicInfo<'_>) -> ! {
 }
 
 #[no_mangle]
-pub extern "C" fn u54_1() {
+pub extern "C" fn u54_1() -> ! {
     unsafe {
         // Rest of hardware initialization
         sys::clear_soft_interrupt();
@@ -71,6 +73,11 @@ pub extern "C" fn u54_1() {
         );
         init_heap();
         time_driver::init();
+
+        sys::raise_soft_interrupt(2);
+        sys::raise_soft_interrupt(3);
+        sys::raise_soft_interrupt(4);
+
         EXECUTOR1.init(Executor::new()).run(|spawner| {
             spawner.must_spawn(hart1_task());
         });
@@ -103,8 +110,75 @@ async fn hart1_task() {
     }
 }
 
-fn uart_puts(s: *const u8) {
+//------------------------------------------------------------------------------------
+
+#[no_mangle]
+pub extern "C" fn u54_2() -> ! {
     unsafe {
-        sys::MSS_UART_polled_tx_string(addr_of_mut!(sys::g_mss_uart0_lo), s);
+        // Rest of hardware initialization
+        sys::clear_soft_interrupt();
+        core::arch::asm!("csrs mie, {}", const sys::MIP_MSIP, options(nomem, nostack));
+        sys::PLIC_init();
+        sys::__enable_irq();
+
+        // Wait for the software interrupt
+        core::arch::asm!("wfi", options(nomem, nostack));
+
+        let msg = format!("Hart {} woke up!\n\0", hart_id());
+        uart_puts(msg.as_ptr());
+
+        loop {}
     }
+}
+
+#[no_mangle]
+pub extern "C" fn u54_3() -> ! {
+    unsafe {
+        // Rest of hardware initialization
+        sys::clear_soft_interrupt();
+        core::arch::asm!("csrs mie, {}", const sys::MIP_MSIP, options(nomem, nostack));
+        sys::PLIC_init();
+        sys::__enable_irq();
+
+        // Wait for the software interrupt
+        core::arch::asm!("wfi", options(nomem, nostack));
+
+        let msg = format!("Hart {} woke up!\n\0", hart_id());
+        uart_puts(msg.as_ptr());
+
+        loop {}
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn u54_4() -> ! {
+    unsafe {
+        // Rest of hardware initialization
+        sys::clear_soft_interrupt();
+        core::arch::asm!("csrs mie, {}", const sys::MIP_MSIP, options(nomem, nostack));
+        sys::PLIC_init();
+        sys::__enable_irq();
+
+        // Wait for the software interrupt
+        core::arch::asm!("wfi", options(nomem, nostack));
+
+        let msg = format!("Hart {} woke up!\n\0", hart_id());
+        uart_puts(msg.as_ptr());
+
+        loop {}
+    }
+}
+
+//------------------------------------------------------------------------------------
+
+static UART_MUTEX: Mutex<CriticalSectionRawMutex, ()> =
+    Mutex::const_new(CriticalSectionRawMutex::new(), ());
+
+fn uart_puts(s: *const u8) {
+    critical_section::with(|cs| {
+        let _guard = UART_MUTEX.borrow(cs);
+        unsafe {
+            sys::MSS_UART_polled_tx_string(addr_of_mut!(sys::g_mss_uart0_lo), s);
+        }
+    });
 }

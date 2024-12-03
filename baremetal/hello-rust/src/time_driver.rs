@@ -16,6 +16,8 @@ struct AlarmState {
 unsafe impl Send for AlarmState {}
 
 const ALARM_COUNT: usize = 1;
+const TIMER_VS_MTIME_RATIO: u64 =
+    sys::LIBERO_SETTING_MSS_APB_AHB_CLK as u64 / sys::LIBERO_SETTING_MSS_RTC_TOGGLE_CLK as u64;
 
 struct TimeDriver {
     alarms: Mutex<CriticalSectionRawMutex, [AlarmState; ALARM_COUNT]>,
@@ -66,8 +68,11 @@ impl Driver for TimeDriver {
             let alarm = &self.alarms.borrow(cs)[n];
             alarm.timestamp.set(timestamp);
             unsafe {
-                let load_value_u = (timestamp >> 32) as u32;
-                let load_value_l = timestamp as u32;
+                let now = self.now();
+                let diff = timestamp - now;
+                let counter = diff * TIMER_VS_MTIME_RATIO;
+                let load_value_u = (counter >> 32) as u32;
+                let load_value_l = counter as u32;
                 sys::MSS_TIM64_load_immediate(sys::TIMER_LO, load_value_u, load_value_l);
                 sys::MSS_TIM64_start(sys::TIMER_LO);
                 sys::MSS_TIM64_enable_irq(sys::TIMER_LO);

@@ -28,9 +28,9 @@ embassy-executor = { version = "0.6", features = [
     "integrated-timers",
     "nightly",
 ] }
-embassy-time = "0.3"
-embassy-time-driver = { version = "0.1", features = ["tick-hz-600_000_000"] }
-embassy-sync = "0.6.1"
+embassy-time = { version = "0.3" }
+embassy-time-driver = { version = "0.1", features = ["tick-hz-1_000_000"] }
+embassy-sync = { version = "0.6" }
 embedded-alloc = "0.6"
 riscv = "0.12"
 static_cell = "2.1"

@@ -22,7 +22,7 @@ impl Executor {
     /// Create a new Executor.
     pub fn new() -> Self {
         Self {
-            inner: raw::Executor::new(sys::hart_id() as *mut ()),
+            inner: raw::Executor::new((sys::hart_id() - 1) as *mut ()),
             not_send: PhantomData,
         }
     }
@@ -57,7 +57,7 @@ impl Executor {
                 self.inner.poll();
                 // we do not care about race conditions between the load and store operations, interrupts
                 //will only set this value to true.
-                let hart_id = sys::hart_id();
+                let hart_id = sys::hart_id() - 1;
                 critical_section::with(|_| {
                     // if there is work to do, loop back to polling
                     // TODO can we relax this?

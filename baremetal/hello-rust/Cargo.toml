@@ -22,15 +22,16 @@ panic = "abort"
 
 [dependencies]
 critical-section = { version = "1.2", features = ["restore-state-bool"] }
-embassy-executor = { version = "0.6", features = [
-    "arch-riscv32",
+embassy-executor = { version = "0.6", path = "../../../external/embassy/embassy-executor", features = [
     "executor-thread",
     "integrated-timers",
     "nightly",
 ] }
-embassy-time = { version = "0.3" }
-embassy-time-driver = { version = "0.1", features = ["tick-hz-1_000_000"] }
-embassy-sync = { version = "0.6" }
+embassy-time = { version = "0.3", path = "../../../external/embassy/embassy-time" }
+embassy-time-driver = { version = "0.1", features = [
+    "tick-hz-1_000_000",
+], path = "../../../external/embassy/embassy-time-driver" }
+embassy-sync = { version = "0.6", path = "../../../external/embassy/embassy-sync" }
 embedded-alloc = "0.6"
 riscv = "0.12"
 static_cell = "2.1"

@@ -7,7 +7,6 @@ use alloc::format;
 use alloc::vec::Vec;
 use core::panic::PanicInfo;
 use core::ptr::addr_of_mut;
-use embassy_executor::Executor;
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::blocking_mutex::Mutex;
 use embassy_time::{Instant, Timer};
@@ -18,11 +17,17 @@ pub mod sys;
 use sys::hart_id;
 
 pub mod critical_section_impl;
+pub mod embassy_executor_riscv;
 pub mod time_driver;
+
+use embassy_executor_riscv::Executor;
 
 critical_section::set_impl!(critical_section_impl::MPFSCriticalSection);
 
 static EXECUTOR1: StaticCell<Executor> = StaticCell::new();
+static EXECUTOR2: StaticCell<Executor> = StaticCell::new();
+static EXECUTOR3: StaticCell<Executor> = StaticCell::new();
+static EXECUTOR4: StaticCell<Executor> = StaticCell::new();
 
 #[global_allocator]
 static HEAP: Heap = Heap::empty();
@@ -104,7 +109,7 @@ async fn hart1_task() {
 
     loop {
         let elapsed = Instant::now() - now;
-        let msg = format!("{} s\n\0", elapsed.as_secs());
+        let msg = format!("{} ms\n\0", elapsed.as_millis());
         uart_puts(msg.as_ptr());
         Timer::after_millis(1000).await;
     }
@@ -124,11 +129,20 @@ pub extern "C" fn u54_2() -> ! {
         // Wait for the software interrupt
         core::arch::asm!("wfi", options(nomem, nostack));
 
-        let msg = format!("Hart {} woke up!\n\0", hart_id());
-        uart_puts(msg.as_ptr());
-
-        loop {}
+        EXECUTOR2.init(Executor::new()).run(|spawner| {
+            spawner.must_spawn(hart2_task());
+        });
     }
+}
+
+#[embassy_executor::task]
+async fn hart2_task() {
+    let msg = format!("Hart {} woke up!\n\0", hart_id());
+    uart_puts(msg.as_ptr());
+    Timer::after_millis(1500).await;
+    let msg = format!("Hart {} again!\n\0", hart_id());
+    uart_puts(msg.as_ptr());
+    loop {}
 }
 
 #[no_mangle]
@@ -143,11 +157,17 @@ pub extern "C" fn u54_3() -> ! {
         // Wait for the software interrupt
         core::arch::asm!("wfi", options(nomem, nostack));
 
-        let msg = format!("Hart {} woke up!\n\0", hart_id());
-        uart_puts(msg.as_ptr());
-
+        // EXECUTOR3.init(Executor::new()).run(|spawner| {
+        //     spawner.must_spawn(hart3_task());
+        // });
         loop {}
     }
+}
+
+#[embassy_executor::task]
+async fn hart3_task() {
+    let msg = format!("Hart {} woke up!\n\0", hart_id());
+    uart_puts(msg.as_ptr());
 }
 
 #[no_mangle]
@@ -162,11 +182,17 @@ pub extern "C" fn u54_4() -> ! {
         // Wait for the software interrupt
         core::arch::asm!("wfi", options(nomem, nostack));
 
-        let msg = format!("Hart {} woke up!\n\0", hart_id());
-        uart_puts(msg.as_ptr());
-
+        // EXECUTOR4.init(Executor::new()).run(|spawner| {
+        //     spawner.must_spawn(hart4_task());
+        // });
         loop {}
     }
+}
+
+#[embassy_executor::task]
+async fn hart4_task() {
+    let msg = format!("Hart {} woke up!\n\0", hart_id());
+    uart_puts(msg.as_ptr());
 }
 
 //------------------------------------------------------------------------------------
@@ -174,7 +200,7 @@ pub extern "C" fn u54_4() -> ! {
 static UART_MUTEX: Mutex<CriticalSectionRawMutex, ()> =
     Mutex::const_new(CriticalSectionRawMutex::new(), ());
 
-fn uart_puts(s: *const u8) {
+pub fn uart_puts(s: *const u8) {
     critical_section::with(|cs| {
         let _guard = UART_MUTEX.borrow(cs);
         unsafe {

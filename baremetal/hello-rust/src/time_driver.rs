@@ -1,3 +1,4 @@
+use alloc::format;
 use core::cell::Cell;
 use core::sync::atomic::{AtomicU8, Ordering};
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
@@ -11,24 +12,28 @@ use super::sys;
 
 struct AlarmState {
     timestamp: Cell<u64>,
+    hart: Cell<usize>,
     callback: Cell<Option<(fn(*mut ()), *mut ())>>,
 }
 unsafe impl Send for AlarmState {}
 
-const ALARM_COUNT: usize = 1;
+const ALARM_COUNT: usize = 4;
 const TIMER_VS_MTIME_RATIO: u64 =
     sys::LIBERO_SETTING_MSS_APB_AHB_CLK as u64 / sys::LIBERO_SETTING_MSS_RTC_TOGGLE_CLK as u64;
 
 struct TimeDriver {
     alarms: Mutex<CriticalSectionRawMutex, [AlarmState; ALARM_COUNT]>,
+    current_alarm: AtomicU8,
     next_alarm: AtomicU8,
 }
 
 embassy_time_driver::time_driver_impl!(static DRIVER: TimeDriver = TimeDriver {
     alarms: Mutex::const_new(CriticalSectionRawMutex::new(), [const{AlarmState {
         timestamp: Cell::new(0),
+        hart: Cell::new(0),
         callback: Cell::new(None),
     }}; ALARM_COUNT]),
+    current_alarm: AtomicU8::new(0),
     next_alarm: AtomicU8::new(0),
 });
 
@@ -49,7 +54,13 @@ impl Driver for TimeDriver {
             });
 
         match id {
-            Ok(id) => Some(AlarmHandle::new(id)),
+            Ok(id) => {
+                critical_section::with(|cs| {
+                    let alarms = self.alarms.borrow(cs);
+                    alarms[id as usize].hart.set(sys::hart_id());
+                });
+                Some(AlarmHandle::new(id))
+            }
             Err(_) => None,
         }
     }
@@ -65,44 +76,80 @@ impl Driver for TimeDriver {
     fn set_alarm(&self, alarm: AlarmHandle, timestamp: u64) -> bool {
         let n = alarm.id() as usize;
         critical_section::with(|cs| {
-            let alarm = &self.alarms.borrow(cs)[n];
+            let alarms = &self.alarms.borrow(cs);
+            let alarm = &alarms[n];
             alarm.timestamp.set(timestamp);
-            unsafe {
-                let now = self.now();
-                let diff = timestamp - now;
-                let counter = diff * TIMER_VS_MTIME_RATIO;
-                let load_value_u = (counter >> 32) as u32;
-                let load_value_l = counter as u32;
-                sys::MSS_TIM64_load_immediate(sys::TIMER_LO, load_value_u, load_value_l);
-                sys::MSS_TIM64_start(sys::TIMER_LO);
-                sys::MSS_TIM64_enable_irq(sys::TIMER_LO);
-            }
+            let msg = format!(
+                "Setting alarm {} for hart {} (alarm hart {}) to {}\n\0",
+                n,
+                sys::hart_id(),
+                alarm.hart.get(),
+                timestamp
+            );
+            super::uart_puts(msg.as_ptr());
 
+            if timestamp
+                > alarms[self.current_alarm.load(Ordering::Acquire) as usize]
+                    .timestamp
+                    .get()
+                || timestamp == u64::MAX
+            {
+                return true; // We have another alarm that will trigger first
+            }
             let now = self.now();
             if timestamp <= now {
                 alarm.timestamp.set(u64::MAX);
-                unsafe {
-                    sys::MSS_TIM64_stop(sys::TIMER_LO);
-                }
-                false
-            } else {
-                true
+                return false; // Already expired
             }
+            super::uart_puts("Setting alarm\n\0".as_ptr());
+            let diff = timestamp - now;
+            self._set_alarm(diff, alarm.hart.get());
+            self.current_alarm.store(n as u8, Ordering::Release);
+            true
         })
     }
 }
 
 impl TimeDriver {
+    fn _set_alarm(&self, interval: u64, hart_id: usize) {
+        let counter = interval * TIMER_VS_MTIME_RATIO;
+        let load_value_u = (counter >> 32) as u32;
+        let load_value_l = counter as u32;
+        unsafe {
+            sys::MSS_TIM64_load_immediate(sys::TIMER_LO, load_value_u, load_value_l);
+            sys::MSS_TIM64_start(sys::TIMER_LO);
+            sys::MSS_TIM64_enable_irq_for_hart(sys::TIMER_LO, hart_id as u64);
+        }
+    }
+
     fn trigger_alarm(&self) {
         critical_section::with(|cs| {
-            let alarm = &self.alarms.borrow(cs)[0];
+            let now = self.now();
+            let alarms = self.alarms.borrow(cs);
+            let alarm = &alarms[self.current_alarm.load(Ordering::Acquire) as usize];
             alarm.timestamp.set(u64::MAX);
-            unsafe {
-                sys::MSS_TIM64_stop(sys::TIMER_LO);
+            let mut pending_alarm: Option<usize> = None;
+            for i in 0..ALARM_COUNT {
+                let ts = alarms[i].timestamp.get();
+                if ts != u64::MAX
+                    && (pending_alarm.is_none()
+                        || ts < alarms[pending_alarm.unwrap()].timestamp.get())
+                {
+                    pending_alarm = Some(i);
+                }
             }
-            // Call after clearing alarm, so the callback can set another alarm.
-            if let Some((f, ctx)) = alarm.callback.get() {
-                f(ctx);
+
+            if let Some(pending_alarm) = pending_alarm {
+                let alarm = &alarms[pending_alarm];
+                let ts = alarm.timestamp.get();
+                let interval = if ts < now { 0 } else { ts - now };
+                self._set_alarm(interval, alarm.hart.get());
+                self.current_alarm
+                    .store(pending_alarm as u8, Ordering::Release);
+            } else {
+                unsafe {
+                    sys::MSS_TIM64_stop(sys::TIMER_LO);
+                }
             }
         });
 
@@ -136,7 +183,10 @@ pub unsafe fn init() {
 
 #[no_mangle]
 pub extern "C" fn PLIC_timer1_IRQHandler() -> u8 {
+    let hart = sys::hart_id();
+    let msg = format!("Hart {} timer!\n\0", hart);
+    super::uart_puts(msg.as_ptr());
     DRIVER.trigger_alarm();
 
-    return sys::EXT_IRQ_KEEP_ENABLED as u8;
+    return sys::EXT_IRQ_DISABLE as u8;
 }

@@ -43,7 +43,7 @@ unsafe fn init_heap() {
 fn panic(panic: &PanicInfo<'_>) -> ! {
     // Print panic message if available
     if let Some(location) = panic.location() {
-        // No alloc/critical section while panicking
+        // We shouldn't rely on alloc/critical section while panicking
         uart_puts(b"\nPANIC at\0".as_ptr());
         uart_puts(location.file().as_bytes().as_ptr());
         uart_puts(b":\0".as_ptr());

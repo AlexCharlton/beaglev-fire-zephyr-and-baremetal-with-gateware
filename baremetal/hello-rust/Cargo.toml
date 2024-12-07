@@ -20,6 +20,9 @@ panic = "abort"
 [profile.release]
 panic = "abort"
 
+[features]
+debug_logs = []
+
 [dependencies]
 critical-section = { version = "1.2", features = ["restore-state-u8"] }
 embassy-executor = { version = "0.6", path = "../../../external/embassy/embassy-executor", features = [

@@ -9,8 +9,11 @@ static SIGNAL_WORK_THREAD_MODE: [AtomicBool; sys::MPFS_HAL_LAST_HART as usize] =
 
 #[export_name = "__pender"]
 fn __pender(context: *mut ()) {
-    //let msg = alloc::format!("hart {} has work pending\n\0", context as usize + 1);
-    // super::uart_puts(msg.as_ptr());
+    #[cfg(feature = "debug_logs")]
+    {
+        let msg = alloc::format!("hart {} has work pending\n\0", context as usize + 1);
+        super::uart_puts(msg.as_ptr());
+    }
     SIGNAL_WORK_THREAD_MODE[context as usize].store(true, Ordering::SeqCst);
 }
 
@@ -56,29 +59,35 @@ impl Executor {
         loop {
             unsafe {
                 self.inner.poll();
-                // we do not care about race conditions between the load and store operations, interrupts
-                //will only set this value to true.
-                let hart_id = sys::hart_id() - 1;
+                let ctx = sys::hart_id() - 1;
                 let mut do_wfi = true;
                 critical_section::with(|_| {
-                    // if there is work to do, loop back to polling
+                    // If there is work to do, loop back to polling
                     // TODO can we relax this?
-                    if SIGNAL_WORK_THREAD_MODE[hart_id].load(Ordering::SeqCst) {
-                        // let msg = alloc::format!("hart {} has work to do\n\0", hart_id + 1);
-                        // super::uart_puts(msg.as_ptr());
-                        SIGNAL_WORK_THREAD_MODE[hart_id].store(false, Ordering::SeqCst);
+                    if SIGNAL_WORK_THREAD_MODE[ctx].load(Ordering::SeqCst) {
+                        #[cfg(feature = "debug_logs")]
+                        {
+                            let msg = alloc::format!("hart {} has work to do\n\0", ctx + 1);
+                            super::uart_puts(msg.as_ptr());
+                        }
+                        SIGNAL_WORK_THREAD_MODE[ctx].store(false, Ordering::SeqCst);
                         do_wfi = false;
                     }
                 });
-                // if not, wait for interrupt
+                // If not, wait for interrupt
+                // This is not in the critical section, since we want to release the critical-section lock
                 if do_wfi {
-                    // let msg = format!("hart {} ({}) going to wfi\n\0", hart_id + 1, sys::hart_id());
-                    // super::uart_puts(msg.as_ptr());
-
-                    // This is not in the critical section, since we want to release the critical-section lock
+                    #[cfg(feature = "debug_logs")]
+                    {
+                        let msg = alloc::format!("hart {} going to wfi\n\0", ctx + 1,);
+                        super::uart_puts(msg.as_ptr());
+                    }
                     core::arch::asm!("wfi");
-                    // let msg = format!("hart {} wfi\n\0", hart_id + 1);
-                    // super::uart_puts(msg.as_ptr());
+                    #[cfg(feature = "debug_logs")]
+                    {
+                        let msg = alloc::format!("hart {} wfi\n\0", ctx + 1);
+                        super::uart_puts(msg.as_ptr());
+                    }
                 }
                 // if an interrupt occurred while waiting, it will be serviced here
             }

@@ -67,14 +67,17 @@ unsafe impl critical_section::Impl for MPFSCriticalSection {
             }
         }
 
-        // super::uart_puts_no_lock(b"hart\0".as_ptr());
-        // super::uart_puts_no_lock([48 + hart_id as u8, 0].as_ptr());
-        // super::uart_puts_no_lock(b" acquired\0".as_ptr());
-        // if was_enabled {
-        //     super::uart_puts_no_lock(b" (restore interrupts: true)\n\0".as_ptr());
-        // } else {
-        //     super::uart_puts_no_lock(b" (restore: false)\n\0".as_ptr());
-        // }
+        #[cfg(feature = "debug_logs")]
+        {
+            super::uart_puts_no_lock(b"hart\0".as_ptr());
+            super::uart_puts_no_lock([48 + hart_id as u8, 0].as_ptr());
+            super::uart_puts_no_lock(b" acquired\0".as_ptr());
+            if was_enabled {
+                super::uart_puts_no_lock(b" (restore interrupts: true)\n\0".as_ptr());
+            } else {
+                super::uart_puts_no_lock(b" (restore: false)\n\0".as_ptr());
+            }
+        }
 
         if was_enabled {
             // We need to restore interrupts when we release the lock
@@ -91,10 +94,12 @@ unsafe impl critical_section::Impl for MPFSCriticalSection {
             return;
         }
 
-        // let hart_id: usize = hart_id();
-        // super::uart_puts_no_lock(b"hart\0".as_ptr());
-        // super::uart_puts_no_lock([48 + hart_id as u8, 0].as_ptr());
-        // super::uart_puts_no_lock(b" releasing\n\0".as_ptr());
+        #[cfg(feature = "debug_logs")]
+        {
+            super::uart_puts_no_lock(b"hart\0".as_ptr());
+            super::uart_puts_no_lock([48 + hart_id() as u8, 0].as_ptr());
+            super::uart_puts_no_lock(b" releasing\n\0".as_ptr());
+        }
 
         // Release the lock
         LOCK_OWNER.store(LOCK_UNOWNED, Ordering::Release);

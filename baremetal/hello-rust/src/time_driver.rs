@@ -1,4 +1,3 @@
-use alloc::format;
 use core::cell::Cell;
 use core::sync::atomic::{AtomicU8, Ordering};
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
@@ -79,21 +78,17 @@ impl Driver for TimeDriver {
             let alarms = &self.alarms.borrow(cs);
             let alarm = &alarms[n];
             alarm.timestamp.set(timestamp);
-            let msg = format!(
-                "Setting alarm {} for hart {} (alarm hart {}) to {}\n\0",
-                n,
-                sys::hart_id(),
-                alarm.hart.get(),
-                timestamp
-            );
-            super::uart_puts(msg.as_ptr());
+            // let msg = alloc::format!(
+            //     "Setting alarm {} for hart {} (alarm hart {}) to {}\n\0",
+            //     n,
+            //     sys::hart_id(),
+            //     alarm.hart.get(),
+            //     timestamp
+            // );
+            // super::uart_puts(msg.as_ptr());
 
-            if timestamp
-                > alarms[self.current_alarm.load(Ordering::Acquire) as usize]
-                    .timestamp
-                    .get()
-                || timestamp == u64::MAX
-            {
+            let current_alarm = &alarms[self.current_alarm.load(Ordering::Acquire) as usize];
+            if timestamp > current_alarm.timestamp.get() || timestamp == u64::MAX {
                 return true; // We have another alarm that will trigger first
             }
             let now = self.now();
@@ -101,7 +96,7 @@ impl Driver for TimeDriver {
                 alarm.timestamp.set(u64::MAX);
                 return false; // Already expired
             }
-            super::uart_puts("Setting alarm\n\0".as_ptr());
+            //super::uart_puts("Setting alarm\n\0".as_ptr());
             let diff = timestamp - now;
             self._set_alarm(diff, alarm.hart.get());
             self.current_alarm.store(n as u8, Ordering::Release);
@@ -122,12 +117,16 @@ impl TimeDriver {
         }
     }
 
-    fn trigger_alarm(&self) {
-        critical_section::with(|cs| {
+    // Returns true if there is a pending alarm
+    fn trigger_alarm(&self) -> bool {
+        let ret = critical_section::with(|cs| {
             let now = self.now();
             let alarms = self.alarms.borrow(cs);
             let alarm = &alarms[self.current_alarm.load(Ordering::Acquire) as usize];
             alarm.timestamp.set(u64::MAX);
+            if let Some((f, ctx)) = alarm.callback.get() {
+                f(ctx);
+            }
             let mut pending_alarm: Option<usize> = None;
             for i in 0..ALARM_COUNT {
                 let ts = alarms[i].timestamp.get();
@@ -142,20 +141,31 @@ impl TimeDriver {
             if let Some(pending_alarm) = pending_alarm {
                 let alarm = &alarms[pending_alarm];
                 let ts = alarm.timestamp.get();
+                // let msg = alloc::format!(
+                //     "Setting alarm {} from hart {} (alarm hart {}) to {}\n\0",
+                //     pending_alarm,
+                //     sys::hart_id(),
+                //     alarm.hart.get(),
+                //     ts
+                // );
+                //super::uart_puts(msg.as_ptr());
                 let interval = if ts < now { 0 } else { ts - now };
                 self._set_alarm(interval, alarm.hart.get());
                 self.current_alarm
                     .store(pending_alarm as u8, Ordering::Release);
+                true
             } else {
                 unsafe {
                     sys::MSS_TIM64_stop(sys::TIMER_LO);
                 }
+                false
             }
         });
 
         unsafe {
             sys::MSS_TIM64_clear_irq(sys::TIMER_LO);
         }
+        ret
     }
 }
 
@@ -183,10 +193,14 @@ pub unsafe fn init() {
 
 #[no_mangle]
 pub extern "C" fn PLIC_timer1_IRQHandler() -> u8 {
-    let hart = sys::hart_id();
-    let msg = format!("Hart {} timer!\n\0", hart);
-    super::uart_puts(msg.as_ptr());
-    DRIVER.trigger_alarm();
+    //let msg = alloc::format!("Hart {} timer! at {}\n\0", sys::hart_id(), DRIVER.now());
+    // super::uart_puts(msg.as_ptr());
+    let pending = DRIVER.trigger_alarm();
 
-    return sys::EXT_IRQ_DISABLE as u8;
+    //super::uart_puts("returning from timer\n\0".as_ptr());
+    return if pending {
+        sys::EXT_IRQ_KEEP_ENABLED
+    } else {
+        sys::EXT_IRQ_DISABLE
+    } as u8;
 }

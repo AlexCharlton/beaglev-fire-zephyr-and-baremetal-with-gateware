@@ -43,13 +43,20 @@ unsafe fn init_heap() {
 fn panic(panic: &PanicInfo<'_>) -> ! {
     // Print panic message if available
     if let Some(location) = panic.location() {
-        let msg = format!(
-            "\nPANIC at {}:{} - {}\n\0",
-            location.file(),
-            location.line(),
-            panic.message()
-        );
-        uart_puts(msg.as_ptr());
+        // No alloc/critical section while panicking
+        uart_puts(b"\nPANIC at\0".as_ptr());
+        uart_puts(location.file().as_bytes().as_ptr());
+        uart_puts(b":\0".as_ptr());
+        // Convert number to string
+        let mut line_buf = [0u8; 10];
+        let mut buf = itoa::Buffer::new();
+        let num_str = buf.format(location.line());
+
+        // Copy to our null-terminated buffer
+        for (i, &byte) in num_str.as_bytes().iter().enumerate() {
+            line_buf[i] = byte;
+        }
+        uart_puts(line_buf.as_ptr());
     }
 
     loop {
@@ -140,9 +147,8 @@ async fn hart2_task() {
     let msg = format!("Hart {} woke up!\n\0", hart_id());
     uart_puts(msg.as_ptr());
     Timer::after_millis(1500).await;
-    let msg = format!("Hart {} again!\n\0", hart_id());
+    let msg = format!("Hart {} again at {}\n\0", hart_id(), Instant::now());
     uart_puts(msg.as_ptr());
-    loop {}
 }
 
 #[no_mangle]
@@ -157,10 +163,9 @@ pub extern "C" fn u54_3() -> ! {
         // Wait for the software interrupt
         core::arch::asm!("wfi", options(nomem, nostack));
 
-        // EXECUTOR3.init(Executor::new()).run(|spawner| {
-        //     spawner.must_spawn(hart3_task());
-        // });
-        loop {}
+        EXECUTOR3.init(Executor::new()).run(|spawner| {
+            spawner.must_spawn(hart3_task());
+        });
     }
 }
 
@@ -182,10 +187,9 @@ pub extern "C" fn u54_4() -> ! {
         // Wait for the software interrupt
         core::arch::asm!("wfi", options(nomem, nostack));
 
-        // EXECUTOR4.init(Executor::new()).run(|spawner| {
-        //     spawner.must_spawn(hart4_task());
-        // });
-        loop {}
+        EXECUTOR4.init(Executor::new()).run(|spawner| {
+            spawner.must_spawn(hart4_task());
+        });
     }
 }
 
@@ -207,4 +211,10 @@ pub fn uart_puts(s: *const u8) {
             sys::MSS_UART_polled_tx_string(addr_of_mut!(sys::g_mss_uart0_lo), s);
         }
     });
+}
+
+pub fn uart_puts_no_lock(s: *const u8) {
+    unsafe {
+        sys::MSS_UART_polled_tx_string(addr_of_mut!(sys::g_mss_uart0_lo), s);
+    }
 }

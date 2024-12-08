@@ -54,12 +54,7 @@ $ ./scripts/build-baremetal.sh
 $ flasher [your-serial-port] baremetal/mpfs-timer-example/build/application.img
 ```
 
-The Rust example uses a patched version of the [platform](https://github.com/AlexCharlton/platform).
-
-```sh
-$ ./scripts/build-baremetal-rust.sh
-$ flasher [your-serial-port] baremetal-build/application.img
-```
+See https://github.com/AlexCharlton/mpfs-hal/ for embedded Rust.
 
 ### GDB debugging
 With a JTAG debugger (FlashPro) connected, run:

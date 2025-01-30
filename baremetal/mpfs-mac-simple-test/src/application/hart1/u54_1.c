@@ -505,6 +505,7 @@ low_level_init(void)
 
     /* Allocate all 4 segments to queue 0 as this is our only one... */
     g_test_mac->mac_base->TX_Q_SEG_ALLOC_Q0TO3 = 2;
+    g_test_mac->mac_base->UPPER_TX_Q_BASE_ADDR = 0x00000010;
 
     g_test_mac->mac_base->NETWORK_CONTROL |= GEM_ENABLE_TRANSMIT;
 

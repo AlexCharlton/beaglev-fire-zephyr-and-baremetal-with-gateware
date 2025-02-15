@@ -18,6 +18,9 @@
 #include "inc/common.h"
 #include "mouse_app.h"
 
+#include "drivers/mss/mss_usb/mss_usb_core_regs.h"
+#define MSS_USB_ADDR_UPPER_OFFSET 0x3FCu
+
 /******************************************************************************
  * Instruction message. This message will be transmitted over the UART when
  * the program starts.
@@ -50,6 +53,7 @@ void u54_1(void)
     //       Otherwise, DMA won't work
     (void)mss_config_clk_rst(MSS_PERIPH_USB, (uint8_t)1, PERIPHERAL_OFF);
     (void)mss_config_clk_rst(MSS_PERIPH_USB, (uint8_t)1, PERIPHERAL_ON);
+    *(uint32_t *)(USB_BASE + MSS_USB_ADDR_UPPER_OFFSET) = 0x10u;
 
     PLIC_init();
 

@@ -1,6 +1,6 @@
-# BeagleV Fire Zephyr/Baremetal (C and Rust) + Gateware + HSS
+# BeagleV Fire Zephyr/Baremetal + Gateware + HSS
 
-Template for developing Zephyr or baremetal applications on the BeagleV Fire using C or Rust. Only tested on Windows, but should work on anything supported by the Microchip tools (Libero/SoftConsole).
+Template for developing Zephyr or baremetal applications on the BeagleV Fire. Only tested on Windows, but should work on anything supported by the Microchip tools (Libero/SoftConsole).
 
 When developing on Windows, it's assumed you're using MSYS2. Zephyr should be installed in WSL, since it apparently does not work particularly well on Windows. The build script will automatically run itself in WSL.
 

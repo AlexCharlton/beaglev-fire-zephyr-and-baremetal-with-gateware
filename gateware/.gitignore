@@ -6,3 +6,4 @@ sources/FPGA-design/script_support/additional_configurations/SPI_LOOPBACK/ICICLE
 *.hex
 *.job
 *.digest
+gateware/sources/HSS/

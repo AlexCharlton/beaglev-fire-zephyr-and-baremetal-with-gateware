@@ -44,7 +44,7 @@ import sys
 import subprocess
 import datetime
 
-from gateware_scripts.generate_gateware_overlays import generate_gateware_overlays
+# from gateware_scripts.generate_gateware_overlays import generate_gateware_overlays
 from gateware_scripts.Logger import Logger
 
 
@@ -56,51 +56,6 @@ def exe_sys_cmd(cmd):
     proc.wait()
 
 
-def check_native_platform():
-    if os.path.isfile('/.dockerenv'):
-        return ""
-    else:
-        return " --native"
-
-
-def set_arguments(yaml_input_file_path):
-    global libero
-    global mss_configurator
-    global softconsole_headless
-    global programming
-    global update
-
-    global yaml_input_file
-
-    # Initialize parser
-#    parser = argparse.ArgumentParser()
-
-#    parser.add_argument('Path',
-#                       metavar='path',
-#                       type=str,
-#                       help='Path to the YAML file describing the list of sources used to build the bitstream.')
-
-    # Read arguments from command line
-#    args = parser.parse_args()
-#    yaml_input_file_arg = args.Path
-
-    if not os.path.isfile(yaml_input_file_path):
-        print("\r\n!!! The path specified for the YAML input file does not exist !!!\r\n")
-#        parser.print_help()
-        sys.exit()
-
-    yaml_input_file = os.path.abspath(yaml_input_file_path)
-
-    # Tool call variables - these are the names of the tools to run which will be called from os.system.
-    # Full paths could be used here instead of assuming tools are in PATH
-    libero = "libero"
-    mss_configurator = "pfsoc_mss"
-    softconsole_headless = "softconsole-headless"
-
-    update = False
-    programming = False
-
-
 # Parse command line arguments and set tool locations
 def parse_arguments():
     global libero
@@ -108,7 +63,7 @@ def parse_arguments():
     global softconsole_headless
     global programming
     global update
-
+    global skip_hss
     global yaml_input_file
 
     # Initialize parser
@@ -119,9 +74,15 @@ def parse_arguments():
                        type=str,
                        help='Path to the YAML file describing the list of sources used to build the bitstream.')
 
+    parser.add_argument('--skip-hss',
+                       action='store_true',
+                       help='Skip building the Hart Software Services (HSS) if it has already been built')
+
     # Read arguments from command line
     args = parser.parse_args()
+    print("args: ", args)
     yaml_input_file_arg = args.Path
+    skip_hss = args.skip_hss
 
     if not os.path.isfile(yaml_input_file_arg):
         print("\r\n!!! The path specified for the YAML input file does not exist !!!\r\n")
@@ -169,36 +130,36 @@ def check_tool_status():
             "The path to the RISC-V toolchain needs to be set in PATH to run this script")
         exit()
 
-    if platform.system() == "Linux" or platform.system() == "Linux2":
-        if shutil.which("dtc") is None:
-            print("Error: dtc (device-tree-compiler) not found in path")
-            exit()
+    # if platform.system() == "Linux" or platform.system() == "Linux2":
+    #     if shutil.which("dtc") is None:
+    #         print("Error: dtc (device-tree-compiler) not found in path")
+    #         exit()
 
-    if platform.system() == "Windows":
-        print("Running on Windows host")
-        wsl_distributions_resp = subprocess.run(['wsl', '-l'], stdout=subprocess.PIPE)
-        wsl_distributions = wsl_distributions_resp.stdout.decode('utf-16')
-        if "Windows Subsystem for Linux" not in wsl_distributions:
-            print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-            print("!!! Windows Subsystem for Linux not found !!!")
-            print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-            print("You need WSL to run the Linux device tree compiler on a Windows host to ")
-            print("generate device tree overlays describing the complete gateware.")
-            print("Without this, Linux will be unaware of the gateware's FPGA content.")
-            input("Press Enter to continue generating gateware without device tree overlays: ")
-        else:
-            print("Windows Subsystem for Linux installed")
-            resp = subprocess.run(['wsl', '-e', 'dtc', '-v'], stdout=subprocess.PIPE)
-            dtc_version = resp.stdout.decode('ascii')
-            if "Version: DTC" not in dtc_version:
-                print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-                print("!!! Device tree compiler not found !!!")
-                print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-                print("Please install the Linux device tree compiler in Windows Subsystem for Linux.")
-                print("In WSL, use command: sudo apt install device-tree-compiler")
-                input("Press Enter to continue generating gateware without device tree overlays: ")
-            else:
-                print("Found device tree compiler: ", dtc_version)
+    # if platform.system() == "Windows":
+    #     print("Running on Windows host")
+    #     wsl_distributions_resp = subprocess.run(['wsl', '-l'], stdout=subprocess.PIPE)
+    #     wsl_distributions = wsl_distributions_resp.stdout.decode('utf-16')
+    #     if "Windows Subsystem for Linux" not in wsl_distributions:
+    #         print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    #         print("!!! Windows Subsystem for Linux not found !!!")
+    #         print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    #         print("You need WSL to run the Linux device tree compiler on a Windows host to ")
+    #         print("generate device tree overlays describing the complete gateware.")
+    #         print("Without this, Linux will be unaware of the gateware's FPGA content.")
+    #         input("Press Enter to continue generating gateware without device tree overlays: ")
+    #     else:
+    #         print("Windows Subsystem for Linux installed")
+    #         resp = subprocess.run(['wsl', '-e', 'dtc', '-v'], stdout=subprocess.PIPE)
+    #         dtc_version = resp.stdout.decode('ascii')
+    #         if "Version: DTC" not in dtc_version:
+    #             print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    #             print("!!! Device tree compiler not found !!!")
+    #             print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    #             print("Please install the Linux device tree compiler in Windows Subsystem for Linux.")
+    #             print("In WSL, use command: sudo apt install device-tree-compiler")
+    #             input("Press Enter to continue generating gateware without device tree overlays: ")
+    #         else:
+    #             print("Found device tree compiler: ", dtc_version)
 
 
 # Creates required folders and removes artifacts before beginning
@@ -314,12 +275,19 @@ def make_mss_config(mss_configurator, config_file, output_dir):
 
 # Builds the HSS using a pre-defined config file using SoftConsole in headless mode
 def make_hss(hss_source, yaml_input_file):
+    global skip_hss
+    generated_hex_file = "./sources/HSS/build/bootmode1/hss-envm-wrapper-bm1-p0.hex"
+
     print("================================================================================")
     print("                       Build Hart Software Services (HSS)")
     print("================================================================================\r\n", flush=True)
 
+    if skip_hss and os.path.isfile(generated_hex_file):
+        shutil.copyfile(generated_hex_file, "./work/HSS/hss-envm-wrapper-bm1-p0.hex")
+        print("HSS build skipped\n")
+        return
+
     cwd = os.getcwd()
-    print("debug: cwd : ", cwd)
 
     # Retrieve build target info from YAML file
     with open(yaml_input_file) as f:  # open the yaml file passed as an arg
@@ -353,7 +321,6 @@ def make_hss(hss_source, yaml_input_file):
     os.chdir(initial_directory)
 
     # Check build was successful and copy the build artifact to the output directory
-    generated_hex_file = "./sources/HSS/build/bootmode1/hss-envm-wrapper-bm1-p0.hex"
     if os.path.isfile(generated_hex_file):
         shutil.copyfile(generated_hex_file, "./work/HSS/hss-envm-wrapper-bm1-p0.hex")
     else:
@@ -435,6 +402,7 @@ def get_top_level_name():
 # Calls Libero and runs a script
 def call_libero(libero, script, script_args, project_location, hss_image_location, prog_export_path, top_level_name, design_version):
     libero_cmd = libero + " SCRIPT:" + script + " \"SCRIPT_ARGS: " + script_args + " PROJECT_LOCATION:" + project_location + " TOP_LEVEL_NAME:" + top_level_name + " HSS_IMAGE_PATH:" + hss_image_location + " PROG_EXPORT_PATH:" + prog_export_path + " DESIGN_VERSION:" + design_version + "\""
+    print("Libero Command: \n  ", libero_cmd, "\n")
     exe_sys_cmd(libero_cmd)
 
 
@@ -461,49 +429,10 @@ def generate_libero_project(libero, yaml_input_file, fpga_design_sources_path, b
     os.chdir(initial_directory)
 
 
-def build_gateware(yaml_input_file_path, build_dir, gateware_top_dir):
-    global libero
-    global mss_configurator
-    global softconsole_headless
-    global programming
-
-    log_file_path = os.path.join("build_log.txt")
-    original_stdout = sys.stdout
-    sys.stdout = Logger(log_file_path)
-
-    set_arguments(yaml_input_file_path)
-
-    # This function will check if all of the required tools are present and quit if they aren't
-    check_tool_status()
-
-    sources = {}
-
-    # Bitstream building starts here - see individual functions for a description of their purpose
-    init_workspace()
-
-    sources = clone_sources(yaml_input_file)
-
-    build_options_list = get_libero_script_args(yaml_input_file)
-    generate_gateware_overlays(os.path.join(gateware_top_dir, "sources", "FPGA-design"),
-                               os.path.join(os.getcwd(), "bitstream", "LinuxProgramming"), build_options_list)
-
-    mss_config_file_path = os.path.join(gateware_top_dir, "sources", "MSS_Configuration", "MSS_Configuration.cfg")
-    work_mss_dir = os.path.join("work", "MSS")
-    make_mss_config(mss_configurator, mss_config_file_path, os.path.join(os.getcwd(), work_mss_dir))
-
-    make_hss(sources["HSS"], yaml_input_file)
-
-    fpga_design_sources_path = os.path.join(gateware_top_dir, "sources", "FPGA-design")
-    generate_libero_project(libero, yaml_input_file, fpga_design_sources_path, build_dir)
-
-    sys.stdout.flush()
-    sys.stdout = original_stdout
-
-    print("Finished", flush=True)
-
 
 def main():
     global libero
+    global yaml_input_file
     global mss_configurator
     global softconsole_headless
     global programming
@@ -520,8 +449,8 @@ def main():
 
     sources = clone_sources(yaml_input_file)
 
-    build_options_list = get_libero_script_args(yaml_input_file)
-    generate_gateware_overlays(os.path.join(os.getcwd(), "bitstream", "LinuxProgramming"), build_options_list)
+    # build_options_list = get_libero_script_args(yaml_input_file)
+    # generate_gateware_overlays(os.path.join(os.getcwd(), "bitstream", "LinuxProgramming"), build_options_list)
 
     mss_config_file_path = os.path.join(".", "sources", "MSS_Configuration", "MSS_Configuration.cfg")
     work_mss_dir = os.path.join("work", "MSS")
@@ -529,7 +458,8 @@ def main():
 
     make_hss(sources["HSS"], yaml_input_file)
 
-    generate_libero_project(libero, yaml_input_file)
+    fpga_design_sources_path = os.path.join(".", "sources", "FPGA-design")
+    generate_libero_project(libero, yaml_input_file, fpga_design_sources_path, ".")
 
     print("Finished", flush=True)
 

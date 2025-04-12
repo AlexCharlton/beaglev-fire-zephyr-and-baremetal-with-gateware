@@ -187,13 +187,13 @@ download_core -vlnv {Actel:DirectCore:CoreGPIO:3.2.102} -location {www.microchip
 download_core -vlnv {Actel:SystemBuilder:PF_SRAM_AHBL_AXI:1.2.108} -location {www.microchip-ip.com/repositories/SgCore}
 download_core -vlnv {Actel:Simulation:CLK_GEN:1.0.1} -location {www.microchip-ip.com/repositories/SgCore}
 download_core -vlnv {Actel:Simulation:RESET_GEN:1.0.1} -location {www.microchip-ip.com/repositories/SgCore}
-download_core -vlnv {Actel:DirectCore:corepwm:4.5.100} -location {www.microchip-ip.com/repositories/DirectCore} 
-download_core -vlnv {Actel:DirectCore:COREI2C:7.2.101} -location {www.microchip-ip.com/repositories/DirectCore} 
-download_core -vlnv {Actel:DirectCore:CoreUARTapb:5.7.100} -location {www.microchip-ip.com/repositories/DirectCore} 
+download_core -vlnv {Actel:DirectCore:corepwm:4.5.100} -location {www.microchip-ip.com/repositories/DirectCore}
+download_core -vlnv {Actel:DirectCore:COREI2C:7.2.101} -location {www.microchip-ip.com/repositories/DirectCore}
+download_core -vlnv {Actel:DirectCore:CoreUARTapb:5.7.100} -location {www.microchip-ip.com/repositories/DirectCore}
 download_core -vlnv {Actel:SystemBuilder:PF_IOD_GENERIC_RX:*} -location {www.microchip-ip.com/repositories/SgCore}
 download_core -vlnv {Actel:SgCore:PF_IO:*} -location {www.microchip-ip.com/repositories/SgCore}
 download_core -vlnv {Actel:SystemBuilder:PF_XCVR_ERM:*} -location {www.microchip-ip.com/repositories/SgCore}
-download_core -vlnv {Microchip:SolutionCore:mipicsi2rxdecoderPF:4.7.0} -location {www.microchip-ip.com/repositories/DirectCore} 
+download_core -vlnv {Microchip:SolutionCore:mipicsi2rxdecoderPF:4.7.0} -location {www.microchip-ip.com/repositories/DirectCore}
 
 #
 # // Generate base design
@@ -249,17 +249,17 @@ organize_tool_files \
     -input_type {constraint}
 
 configure_tool \
-         -name {CONFIGURE_PROG_OPTIONS} \
-         -params {back_level_version:0} \
-         -params design_version:$gateware_design_version \
-         -params silicon_signature:$gateware_silicon_signature 
+    -name {CONFIGURE_PROG_OPTIONS} \
+    -params {back_level_version:0} \
+    -params design_version:$gateware_design_version \
+    -params silicon_signature:$gateware_silicon_signature
 
 #
 # // Derive timing constraints
 #
 
 build_design_hierarchy
-derive_constraints_sdc 
+derive_constraints_sdc
 
 #
 # // Run the design flow and add eNVM clients if required
@@ -278,9 +278,9 @@ if !{[info exists ONLY_CREATE_DESIGN]} {
         run_tool -name {GENERATEPROGRAMMINGDATA}
         configure_envm -cfg_file {script_support/components/MSS/ENVM.cfg}
         source ./script_support/export_spi_prog_file.tcl
-       configure_spiflash -cfg_file {./script_support/spiflash.cfg} 
-        run_tool -name {GENERATEPROGRAMMINGFILE} 
-#       run_tool -name {GENERATE_SPI_FLASH_IMAGE} 
+        configure_spiflash -cfg_file {./script_support/spiflash.cfg}
+        run_tool -name {GENERATEPROGRAMMINGFILE}
+        #       run_tool -name {GENERATE_SPI_FLASH_IMAGE}
         source ./script_support/export_flashproexpress.tcl
         source ./script_support/export_directc.tcl
     } else {
@@ -292,6 +292,6 @@ if !{[info exists ONLY_CREATE_DESIGN]} {
         puts "!!! bitstream flavor you need.                                               !!!"
         puts "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
     }
-} 
+}
 
-save_project 
+save_project

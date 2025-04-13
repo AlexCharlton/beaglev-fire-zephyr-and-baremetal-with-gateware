@@ -6,4 +6,4 @@ HSS:
     board: mpfs-beaglev-fire
 gateware:
     type: sources
-    build-args: "CAPE_OPTION:DEFAULT"
+    build-args: "CAPE_OPTION:BLINKY"

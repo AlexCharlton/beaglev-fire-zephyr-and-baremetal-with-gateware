@@ -64,6 +64,7 @@ def parse_arguments():
     global programming
     global update
     global skip_hss
+    global generate_bitstream_only
     global yaml_input_file
 
     # Initialize parser
@@ -78,11 +79,17 @@ def parse_arguments():
                        action='store_true',
                        help='Skip building the Hart Software Services (HSS) if it has already been built')
 
+    parser.add_argument('--generate-bitstream-only',
+                       action='store_true',
+                       help='Generate the bitstream only, skipping the generation of the Libero project')
+
+
     # Read arguments from command line
     args = parser.parse_args()
     print("args: ", args)
     yaml_input_file_arg = args.Path
     skip_hss = args.skip_hss
+    generate_bitstream_only = args.generate_bitstream_only
 
     if not os.path.isfile(yaml_input_file_arg):
         print("\r\n!!! The path specified for the YAML input file does not exist !!!\r\n")
@@ -188,9 +195,6 @@ def init_workspace():
 
     # Create the bitstream folder structure. This is where the created bitstreams will be generated. There might be
     # multiple subdirectories there to provided different programming options.
-    os.mkdir("./bitstream")
-    os.mkdir("./bitstream/FlashProExpress")
-    os.mkdir("./bitstream/LinuxProgramming")
     print("  The FlashPro Express bitstream programming job files will be stored in")
     print("  directory: ./bitstream/FlashProExpress\r\n", flush=True)
 
@@ -399,35 +403,50 @@ def get_top_level_name():
     return top_level_name
 
 
-# Calls Libero and runs a script
-def call_libero(libero, script, script_args, project_location, hss_image_location, prog_export_path, top_level_name, design_version):
-    libero_cmd = libero + " SCRIPT:" + script + " \"SCRIPT_ARGS: " + script_args + " PROJECT_LOCATION:" + project_location + " TOP_LEVEL_NAME:" + top_level_name + " HSS_IMAGE_PATH:" + hss_image_location + " PROG_EXPORT_PATH:" + prog_export_path + " DESIGN_VERSION:" + design_version + "\""
-    print("Libero Command: \n  ", libero_cmd, "\n")
-    exe_sys_cmd(libero_cmd)
-
-
-def generate_libero_project(libero, yaml_input_file, fpga_design_sources_path, build_dir_path):
+def generate_libero_project(libero, yaml_input_file, fpga_design_sources_path, hss_image_location):
     print("================================================================================")
     print("                            Generate Libero project")
     print("================================================================================\r\n", flush=True)
     # Execute the Libero TCL script used to create the Libero design
     initial_directory = os.getcwd()
     os.chdir(fpga_design_sources_path)
-    project_location = os.path.join("..", "..", build_dir_path, "work", "libero")
+
+    base_dir = os.path.join("..", "..")
+    project_location = os.path.join(base_dir, "work", "libero")
     script = "BUILD_BVF_GATEWARE.tcl"
 
     script_args = get_libero_script_args(yaml_input_file)
     design_version = get_design_version(yaml_input_file)
 
-    hss_image_location = os.path.join("..", "..", "work", "HSS", "hss-envm-wrapper-bm1-p0.hex")
-    prog_export_path = os.path.join("..", "..", build_dir_path)
+    top_level_name = get_top_level_name()
+    print("top level name: ", top_level_name)
+
+    libero_cmd = libero + " SCRIPT:" + script + " \"SCRIPT_ARGS: " + script_args + " PROJECT_LOCATION:" + project_location + " TOP_LEVEL_NAME:" + top_level_name + " HSS_IMAGE_PATH:" + hss_image_location + " PROG_EXPORT_PATH:" + base_dir  + " DESIGN_VERSION:" + design_version + "\""
+    print("Libero Command: \n  ", libero_cmd, "\n")
+    exe_sys_cmd(libero_cmd)
+
+    os.chdir(initial_directory)
+
+def generate_libero_bitstream(libero, fpga_design_sources_path, hss_image_location):
+    print("================================================================================")
+    print("                            Generate Libero project")
+    print("================================================================================\r\n", flush=True)
+    # Execute the Libero TCL script used to create the Libero design
+    initial_directory = os.getcwd()
+    os.chdir(fpga_design_sources_path)
+
+    base_dir = os.path.join("..", "..")
+    project_location = os.path.join(base_dir, "work", "libero")
+    script = "GENERATE_BITSTREAM.tcl"
 
     top_level_name = get_top_level_name()
     print("top level name: ", top_level_name)
 
-    call_libero(libero, script, script_args, project_location, hss_image_location, prog_export_path, top_level_name, design_version)
-    os.chdir(initial_directory)
+    libero_cmd = libero + " SCRIPT:" + script + " \"SCRIPT_ARGS:PROJECT_LOCATION:" + project_location + " TOP_LEVEL_NAME:" + top_level_name + " HSS_IMAGE_PATH:" + hss_image_location + " PROG_EXPORT_PATH:" + base_dir + "\""
+    print("Libero Command: \n  ", libero_cmd, "\n")
+    exe_sys_cmd(libero_cmd)
 
+    os.chdir(initial_directory)
 
 
 def main():
@@ -436,6 +455,9 @@ def main():
     global mss_configurator
     global softconsole_headless
     global programming
+    global generate_bitstream_only
+    fpga_design_sources_path = os.path.join(".", "sources", "FPGA-design")
+    hss_image_location = os.path.join("..", "..", "work", "HSS", "hss-envm-wrapper-bm1-p0.hex")
 
     parse_arguments()
 
@@ -443,6 +465,11 @@ def main():
     check_tool_status()
 
     sources = {}
+
+    if generate_bitstream_only:
+        print("Generating bitstream only")
+        generate_libero_bitstream(libero, fpga_design_sources_path, hss_image_location)
+        return
 
     # Bitstream building starts here - see individual functions for a description of their purpose
     init_workspace()
@@ -458,8 +485,7 @@ def main():
 
     make_hss(sources["HSS"], yaml_input_file)
 
-    fpga_design_sources_path = os.path.join(".", "sources", "FPGA-design")
-    generate_libero_project(libero, yaml_input_file, fpga_design_sources_path, ".")
+    generate_libero_project(libero, yaml_input_file, fpga_design_sources_path, hss_image_location)
 
     print("Finished", flush=True)
 
